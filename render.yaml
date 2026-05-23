@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: smartschedule-g3
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: SESSION_SECRET
+        generateValue: true
