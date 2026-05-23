@@ -51,13 +51,20 @@ async function getCurrentUser() {
   try {
     const data = await api.get('/auth/me');
     return data.user;
-  } catch {
+  } catch (err) {
+    if (err.message && err.message.includes('Failed to fetch')) {
+      return 'network-error';
+    }
     return null;
   }
 }
 
 async function requireSession(redirectTo = '/index.html') {
   const user = await getCurrentUser();
+  if (user === 'network-error') {
+    setTimeout(() => window.location.reload(), 3000);
+    return null;
+  }
   if (!user) {
     window.location.href = redirectTo;
     return null;
