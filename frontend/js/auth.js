@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const form = document.getElementById('login-form');
+  if (!form) return;  // no estamos en la página de login, no hacer nada
+
+  const alertBox = document.getElementById('alert-box');
+
   const user = await getCurrentUser();
-  if (user) {
+  if (user && user !== 'network-error') {
     window.location.href = '/panel.html';
     return;
   }
-
-  const form = document.getElementById('login-form');
-  const alertBox = document.getElementById('alert-box');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
