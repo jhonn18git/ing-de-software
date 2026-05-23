@@ -1,5 +1,8 @@
 # SmartSchedule — Generador Inteligente de Horarios de Estudio
 
+## 🌐 Aplicación en producción
+https://ing-de-software-cyqy.onrender.com
+
 **Universidad:** USFX — Ingeniería de Software  
 **Grupo:** 3
 
