@@ -39,9 +39,9 @@ if (existingUsers.count === 0) {
   const insert = db.prepare(
     'INSERT INTO users (name, username, email, password, rol) VALUES (?, ?, ?, ?, ?)'
   );
-  insert.run('Administrador', 'admin', 'admin@smartschedule.com', 'admin123', 'admin');
-  insert.run('Ofertante Ejemplo', 'ofertante1', 'ofertante1@smartschedule.com', 'pass123', 'ofertante');
-  insert.run('Demandante Ejemplo', 'demandante1', 'demandante1@smartschedule.com', 'pass123', 'demandante');
+  insert.run('Jhonn Llanos Rojas', 'jhonn', 'jhonn@smartschedule.com', '123', 'admin');
+  insert.run('Camila Montecinos Solis', 'camila', 'camila@smartschedule.com', '123', 'ofertante');
+  insert.run('Erick Arancibia Flores', 'erick', 'erick@smartschedule.com', '123', 'demandante');
 }
 
 module.exports = db;
