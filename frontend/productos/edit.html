@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Editar Producto</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <div class="nav-section">Productos</div>
+      <a href="/productos/list.html" class="nav-link active"><span class="icon">📦</span> Ver Productos</a>
+      <a href="/productos/create.html" class="nav-link"><span class="icon">➕</span> Nuevo Producto</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Editar Producto</span>
+      <a href="/productos/list.html" class="btn btn-secondary btn-sm">← Volver</a>
+    </div>
+    <div class="page-content">
+      <div class="card" style="max-width:520px">
+        <div id="alert-box"></div>
+        <div class="alert alert-info" style="margin-bottom:1rem">
+          Al guardar cambios, el producto volverá al estado <strong>pendiente</strong> para revisión.
+        </div>
+        <form id="product-form" novalidate>
+          <div class="form-group">
+            <label>Título</label>
+            <input type="text" id="title" required>
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <textarea id="description" required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Precio / Tarifa (Bs.)</label>
+            <input type="number" id="price" min="0" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="category">
+              <option value="Tutoría">Tutoría</option>
+              <option value="Curso">Curso</option>
+              <option value="Material">Material</option>
+              <option value="Software">Software</option>
+              <option value="Consultoría">Consultoría</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:.75rem;margin-top:.5rem">
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            <a href="/productos/list.html" class="btn btn-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/productos.js"></script>
+</body>
+</html>

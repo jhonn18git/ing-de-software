@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Panel</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>📅 SmartSchedule</h2>
+      <span>Grupo 3 — USFX</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link active"><span class="icon">🏠</span> Panel</a>
+
+      <div class="nav-section" id="nav-admin-section" style="display:none">Admin</div>
+      <a href="/usuarios/list.html" class="nav-link admin-only" id="nav-users" style="display:none">
+        <span class="icon">👥</span> Usuarios
+      </a>
+      <a href="/productos/pendiente.html" class="nav-link admin-only" id="nav-pending" style="display:none">
+        <span class="icon">⏳</span> Pendientes
+      </a>
+
+      <div class="nav-section">Productos</div>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
+      <a href="/productos/create.html" class="nav-link ofertante-only" id="nav-create-product" style="display:none">
+        <span class="icon">➕</span> Nuevo Producto
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <strong id="user-name">Cargando...</strong>
+          <small id="user-role"></small>
+        </div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Panel Principal</span>
+    </div>
+    <div class="page-content">
+      <div id="alert-global"></div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue">👤</div>
+          <div>
+            <div class="stat-number" id="stat-users">—</div>
+            <div class="stat-label">Usuarios</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📦</div>
+          <div>
+            <div class="stat-number" id="stat-products">—</div>
+            <div class="stat-label">Productos</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">⏳</div>
+          <div>
+            <div class="stat-number" id="stat-pending">—</div>
+            <div class="stat-label">Pendientes</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red">✅</div>
+          <div>
+            <div class="stat-number" id="stat-approved">—</div>
+            <div class="stat-label">Aprobados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Bienvenido/a a SmartSchedule</h2>
+        </div>
+        <p id="welcome-msg" style="color:#64748b">Cargando tu información...</p>
+        <div style="margin-top:1rem" id="quick-actions"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireSession();
+  if (!user) return;
+
+  setUserChip(user);
+
+  if (user.rol === 'admin') {
+    document.getElementById('nav-admin-section').style.display = 'block';
+    document.getElementById('nav-users').style.display = 'flex';
+    document.getElementById('nav-pending').style.display = 'flex';
+  }
+  if (user.rol === 'ofertante' || user.rol === 'admin') {
+    document.getElementById('nav-create-product').style.display = 'flex';
+  }
+
+  document.getElementById('welcome-msg').innerHTML =
+    `Hola, <strong>${user.name}</strong>. Tienes el rol de <strong>${user.rol}</strong>.`;
+
+  const qas = document.getElementById('quick-actions');
+  if (user.rol === 'admin') {
+    qas.innerHTML = `
+      <a href="/usuarios/list.html" class="btn btn-primary" style="margin-right:.5rem">Gestionar Usuarios</a>
+      <a href="/productos/pendiente.html" class="btn btn-warning">Ver Pendientes</a>`;
+  } else if (user.rol === 'ofertante') {
+    qas.innerHTML = `<a href="/productos/create.html" class="btn btn-success">Publicar Producto</a>`;
+  } else {
+    qas.innerHTML = `<a href="/productos/list.html" class="btn btn-primary">Ver Productos</a>`;
+  }
+
+  try {
+    const products = await api.get('/products');
+    const allProducts = user.rol === 'admin' ? products : null;
+
+    if (user.rol === 'admin') {
+      const [users] = await Promise.all([api.get('/users')]);
+      document.getElementById('stat-users').textContent = users.length;
+      document.getElementById('stat-products').textContent = products.length;
+      document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
+      document.getElementById('stat-approved').textContent = products.filter(p => p.status === 'aprobado').length;
+    } else {
+      document.getElementById('stat-users').textContent = '—';
+      document.getElementById('stat-products').textContent = products.length;
+      document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
+      document.getElementById('stat-approved').textContent = products.filter(p => p.status === 'aprobado').length;
+    }
+  } catch {}
+});
+</script>
+</body>
+</html>

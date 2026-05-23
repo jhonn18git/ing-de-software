@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Iniciar Sesión</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>📅 SmartSchedule</h1>
+      <p>Generador Inteligente de Horarios de Estudio</p>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label for="username">Nombre de usuario</label>
+        <input type="text" id="username" placeholder="Ej: admin" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" placeholder="Tu contraseña" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Iniciar Sesión</button>
+    </form>
+
+    <div style="margin-top:1.5rem; padding:1rem; background:#f8fafc; border-radius:8px; font-size:0.82rem; color:#64748b;">
+      <strong>Usuarios de prueba:</strong><br>
+      admin / admin123 &nbsp;·&nbsp; ofertante1 / pass123 &nbsp;·&nbsp; demandante1 / pass123
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>

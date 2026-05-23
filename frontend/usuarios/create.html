@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Crear Usuario</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <div class="nav-section">Admin</div>
+      <a href="/usuarios/list.html" class="nav-link active"><span class="icon">👥</span> Usuarios</a>
+      <a href="/productos/pendiente.html" class="nav-link"><span class="icon">⏳</span> Pendientes</a>
+      <div class="nav-section">Productos</div>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Crear Usuario</span>
+      <a href="/usuarios/list.html" class="btn btn-secondary btn-sm">← Volver</a>
+    </div>
+    <div class="page-content">
+      <div class="card" style="max-width:520px">
+        <div id="alert-box"></div>
+        <form id="user-form" novalidate>
+          <div class="form-group">
+            <label>Nombre completo</label>
+            <input type="text" id="name" placeholder="Ej: Juan Pérez" required>
+          </div>
+          <div class="form-group">
+            <label>Nombre de usuario</label>
+            <input type="text" id="username" placeholder="Ej: jperez" required>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="Ej: juan@mail.com" required>
+          </div>
+          <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="password" placeholder="Mínimo 6 caracteres" required>
+          </div>
+          <div class="form-group" id="rol-group">
+            <label>Rol</label>
+            <select id="rol">
+              <option value="demandante">Demandante</option>
+              <option value="ofertante">Ofertante</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:.75rem;margin-top:.5rem">
+            <button type="submit" class="btn btn-primary">Crear Usuario</button>
+            <a href="/usuarios/list.html" class="btn btn-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/usuarios.js"></script>
+</body>
+</html>
