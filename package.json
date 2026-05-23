@@ -9,6 +9,9 @@
   },
   "author": "Erick Arancibia, Jhonn Llanos, Camila Montecinos",
   "license": "ISC",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
