@@ -4,8 +4,8 @@
   "description": "SmartSchedule - Generador Inteligente de Horarios de Estudio (USFX Grupo 3)",
   "main": "backend/server.js",
   "scripts": {
-    "start": "node --no-warnings backend/server.js",
-    "dev": "nodemon --no-warnings backend/server.js"
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
   },
   "author": "Erick Arancibia, Jhonn Llanos, Camila Montecinos",
   "license": "ISC",
