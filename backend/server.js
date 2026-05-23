@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 const cors = require('cors');
 const path = require('path');
 
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
+  store: new SQLiteStore({ db: 'smartschedule.db', dir: '.' }),
   secret: process.env.SESSION_SECRET || 'smartschedule-secret-2026',
   resave: false,
   saveUninitialized: false,
