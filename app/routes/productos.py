@@ -15,7 +15,7 @@ def _valid_price(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0
 
 
-@productos_bp.route('', methods=['GET'])
+@productos_bp.route('/api/productos', methods=['GET'])
 @require_auth
 def list_products():
     user = session['user']
@@ -36,7 +36,7 @@ def list_products():
     return jsonify([dict(p) for p in products])
 
 
-@productos_bp.route('/pendientes', methods=['GET'])
+@productos_bp.route('/api/productos/pendientes', methods=['GET'])
 @require_admin
 def list_pending():
     conn = get_db()
@@ -47,7 +47,7 @@ def list_pending():
     return jsonify([dict(p) for p in products])
 
 
-@productos_bp.route('/<int:id>', methods=['GET'])
+@productos_bp.route('/api/productos/<int:id>', methods=['GET'])
 @require_auth
 def get_product(id):
     user = session['user']
@@ -67,7 +67,7 @@ def get_product(id):
     return jsonify(p)
 
 
-@productos_bp.route('', methods=['POST'])
+@productos_bp.route('/api/productos', methods=['POST'])
 @require_ofertante
 def create_product():
     user = session['user']
@@ -94,7 +94,7 @@ def create_product():
     return jsonify(dict(product)), 201
 
 
-@productos_bp.route('/<int:id>', methods=['PUT'])
+@productos_bp.route('/api/productos/<int:id>', methods=['PUT'])
 @require_auth
 def update_product(id):
     user = session['user']
@@ -133,7 +133,7 @@ def update_product(id):
     return jsonify(dict(updated))
 
 
-@productos_bp.route('/<int:id>', methods=['DELETE'])
+@productos_bp.route('/api/productos/<int:id>', methods=['DELETE'])
 @require_auth
 def delete_product(id):
     user = session['user']
@@ -158,7 +158,7 @@ def delete_product(id):
     return jsonify({'message': 'Producto eliminado'})
 
 
-@productos_bp.route('/<int:id>/status', methods=['PATCH'])
+@productos_bp.route('/api/productos/<int:id>/status', methods=['PATCH'])
 @require_admin
 def change_status(id):
     data = request.get_json() or {}

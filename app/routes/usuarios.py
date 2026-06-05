@@ -7,7 +7,7 @@ usuarios_bp = Blueprint('usuarios', __name__)
 SAFE_FIELDS = 'id, name, username, email, image, rol, created_at, updated_at'
 
 
-@usuarios_bp.route('', methods=['GET'])
+@usuarios_bp.route('/api/usuarios', methods=['GET'])
 @require_admin
 def list_users():
     conn = get_db()
@@ -16,7 +16,7 @@ def list_users():
     return jsonify([dict(u) for u in users])
 
 
-@usuarios_bp.route('/<int:id>', methods=['GET'])
+@usuarios_bp.route('/api/usuarios/<int:id>', methods=['GET'])
 @require_auth
 def get_user(id):
     current = session['user']
@@ -32,7 +32,7 @@ def get_user(id):
     return jsonify(dict(user))
 
 
-@usuarios_bp.route('', methods=['POST'])
+@usuarios_bp.route('/api/usuarios', methods=['POST'])
 @require_admin
 def create_user():
     data = request.get_json() or {}
@@ -64,7 +64,7 @@ def create_user():
         return jsonify({'error': str(e)}), 500
 
 
-@usuarios_bp.route('/<int:id>', methods=['PUT'])
+@usuarios_bp.route('/api/usuarios/<int:id>', methods=['PUT'])
 @require_auth
 def update_user(id):
     current = session['user']
@@ -110,7 +110,7 @@ def update_user(id):
         return jsonify({'error': str(e)}), 500
 
 
-@usuarios_bp.route('/<int:id>', methods=['DELETE'])
+@usuarios_bp.route('/api/usuarios/<int:id>', methods=['DELETE'])
 @require_admin
 def delete_user(id):
     current = session['user']

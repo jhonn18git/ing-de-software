@@ -6,7 +6,7 @@ from app.middleware import require_auth
 perfil_bp = Blueprint('perfil', __name__)
 
 
-@perfil_bp.route('', methods=['GET'])
+@perfil_bp.route('/api/perfil', methods=['GET'])
 @require_auth
 def get_perfil():
     uid = session['user']['id']
@@ -20,7 +20,7 @@ def get_perfil():
     return jsonify({'perfil': dict(row)}), 200
 
 
-@perfil_bp.route('', methods=['POST'])
+@perfil_bp.route('/api/perfil', methods=['POST'])
 @require_auth
 def save_perfil():
     uid = session['user']['id']
@@ -57,7 +57,7 @@ def save_perfil():
     return jsonify({'ok': True}), 200
 
 
-@perfil_bp.route('/carreras', methods=['GET'])
+@perfil_bp.route('/api/perfil/carreras', methods=['GET'])
 @require_auth
 def get_carreras():
     db = get_db()
@@ -68,7 +68,7 @@ def get_carreras():
     return jsonify([r['carrera'] for r in rows]), 200
 
 
-@perfil_bp.route('/semestres', methods=['GET'])
+@perfil_bp.route('/api/perfil/semestres', methods=['GET'])
 @require_auth
 def get_semestres():
     try:
@@ -97,7 +97,7 @@ def get_semestres():
         return jsonify({'error': str(e)}), 500
 
 
-@perfil_bp.route('/grupos', methods=['GET'])
+@perfil_bp.route('/api/perfil/grupos', methods=['GET'])
 @require_auth
 def get_grupos():
     try:

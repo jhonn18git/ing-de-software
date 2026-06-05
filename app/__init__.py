@@ -25,13 +25,13 @@ def create_app():
     from app.routes.evaluaciones import evaluaciones_bp
     from app.routes.horarios    import horario_bp
 
-    app.register_blueprint(auth_bp,         url_prefix='/api/auth')
-    app.register_blueprint(usuarios_bp,     url_prefix='/api/usuarios')
-    app.register_blueprint(productos_bp,    url_prefix='/api/productos')
-    app.register_blueprint(perfil_bp,       url_prefix='/api/perfil')
-    app.register_blueprint(materias_bp,     url_prefix='/api/materias')
-    app.register_blueprint(evaluaciones_bp, url_prefix='/api/evaluaciones')
-    app.register_blueprint(horario_bp,      url_prefix='/api/horario')
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(usuarios_bp)
+    app.register_blueprint(productos_bp)
+    app.register_blueprint(perfil_bp)
+    app.register_blueprint(materias_bp)
+    app.register_blueprint(evaluaciones_bp)
+    app.register_blueprint(horario_bp)
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')

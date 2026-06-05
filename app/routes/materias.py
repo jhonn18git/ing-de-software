@@ -10,7 +10,7 @@ COLORES_DEFAULT = [
 ]
 
 
-@materias_bp.route('', methods=['GET'])
+@materias_bp.route('/api/materias', methods=['GET'])
 @require_auth
 def get_materias():
     uid = session['user']['id']
@@ -23,7 +23,7 @@ def get_materias():
     return jsonify([dict(r) for r in rows]), 200
 
 
-@materias_bp.route('/sync', methods=['POST'])
+@materias_bp.route('/api/materias/sync', methods=['POST'])
 @require_auth
 def sync_materias():
     """
@@ -57,10 +57,21 @@ def sync_materias():
     print(f"DEBUG sync - materias encontradas: {[r['materia_codigo'] for r in usfx]}")
 
     if not usfx:
+        # Fallback: buscar sin filtrar por grupo (por si el nombre del grupo no coincide exactamente)
+        usfx = db.execute(
+            '''SELECT DISTINCT materia_codigo, materia_nombre
+               FROM horarios_usfx
+               WHERE carrera=? AND semestre=?
+               ORDER BY materia_codigo''',
+            (perfil['carrera'], perfil['semestre'])
+        ).fetchall()
+        print(f"DEBUG sync (fallback sin grupo) - materias: {[r['materia_codigo'] for r in usfx]}")
+
+    if not usfx:
         db.close()
         return jsonify({
             'error': (
-                f"Sin materias en horarios_usfx para: carrera='{perfil['carrera']}' "
+                f"Sin materias para: carrera='{perfil['carrera']}' "
                 f"semestre={perfil['semestre']} grupo='{perfil['grupo']}'. "
                 f"Total filas en DB: {total_usfx}"
             )
@@ -103,7 +114,7 @@ def sync_materias():
     return jsonify({'insertadas': insertadas, 'materias': [dict(r) for r in rows]}), 200
 
 
-@materias_bp.route('/<int:mid>', methods=['PUT'])
+@materias_bp.route('/api/materias/<int:mid>', methods=['PUT'])
 @require_auth
 def update_materia(mid):
     uid = session['user']['id']
@@ -146,7 +157,7 @@ def update_materia(mid):
     return jsonify(dict(updated)), 200
 
 
-@materias_bp.route('/<int:mid>', methods=['DELETE'])
+@materias_bp.route('/api/materias/<int:mid>', methods=['DELETE'])
 @require_auth
 def delete_materia(mid):
     uid = session['user']['id']

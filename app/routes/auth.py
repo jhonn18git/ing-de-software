@@ -4,7 +4,7 @@ from app.database import get_db
 auth_bp = Blueprint('auth', __name__)
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
     data = request.get_json() or {}
     username = data.get('username', '').strip()
@@ -27,13 +27,13 @@ def login():
     return jsonify({'message': 'Login exitoso', 'user': dict(user)})
 
 
-@auth_bp.route('/logout', methods=['POST'])
+@auth_bp.route('/api/auth/logout', methods=['POST'])
 def logout():
     session.clear()
     return jsonify({'message': 'Sesión cerrada'})
 
 
-@auth_bp.route('/me', methods=['GET'])
+@auth_bp.route('/api/auth/me', methods=['GET'])
 def me():
     if 'user' not in session:
         return jsonify({'error': 'No autenticado'}), 401

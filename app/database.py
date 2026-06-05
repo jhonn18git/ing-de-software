@@ -19,13 +19,6 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
 
-    # TEMP: forzar recreación de horarios
-    try:
-        conn.execute("DELETE FROM horarios_usfx")
-        conn.commit()
-    except Exception:
-        pass
-
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

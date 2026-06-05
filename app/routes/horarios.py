@@ -7,7 +7,7 @@ from app.algoritmo import generar_horario
 horario_bp = Blueprint('horario', __name__)
 
 
-@horario_bp.route('', methods=['GET'])
+@horario_bp.route('/api/horario', methods=['GET'])
 @require_auth
 def get_horario():
     uid = session['user']['id']
@@ -25,7 +25,7 @@ def get_horario():
     }), 200
 
 
-@horario_bp.route('/generar', methods=['POST'])
+@horario_bp.route('/api/horario/generar', methods=['POST'])
 @require_auth
 def generar():
     uid = session['user']['id']
@@ -64,7 +64,7 @@ def generar():
     return jsonify({'horario': horario, 'generado_at': row['generado_at']}), 200
 
 
-@horario_bp.route('/clases', methods=['GET'])
+@horario_bp.route('/api/horario/clases', methods=['GET'])
 @require_auth
 def get_clases():
     """Devuelve las clases USFX del usuario según su perfil académico."""

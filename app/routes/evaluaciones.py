@@ -6,7 +6,7 @@ from app.middleware import require_auth
 evaluaciones_bp = Blueprint('evaluaciones', __name__)
 
 
-@evaluaciones_bp.route('', methods=['GET'])
+@evaluaciones_bp.route('/api/evaluaciones', methods=['GET'])
 @require_auth
 def get_evaluaciones():
     uid = session['user']['id']
@@ -20,7 +20,7 @@ def get_evaluaciones():
     return jsonify([dict(r) for r in rows]), 200
 
 
-@evaluaciones_bp.route('', methods=['POST'])
+@evaluaciones_bp.route('/api/evaluaciones', methods=['POST'])
 @require_auth
 def create_evaluacion():
     uid = session['user']['id']
@@ -53,7 +53,7 @@ def create_evaluacion():
     return jsonify(dict(row)), 201
 
 
-@evaluaciones_bp.route('/<int:eid>', methods=['PUT'])
+@evaluaciones_bp.route('/api/evaluaciones/<int:eid>', methods=['PUT'])
 @require_auth
 def update_evaluacion(eid):
     uid = session['user']['id']
@@ -93,7 +93,7 @@ def update_evaluacion(eid):
     return jsonify(dict(updated)), 200
 
 
-@evaluaciones_bp.route('/<int:eid>', methods=['DELETE'])
+@evaluaciones_bp.route('/api/evaluaciones/<int:eid>', methods=['DELETE'])
 @require_auth
 def delete_evaluacion(eid):
     uid = session['user']['id']
