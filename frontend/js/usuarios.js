@@ -26,7 +26,7 @@ async function loadUsers() {
   tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando usuarios...</td></tr>';
 
   try {
-    const users = await api.get('/users');
+    const users = await api.get('/usuarios');
     if (!users.length) {
       tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">👤</div><h3>Sin usuarios</h3></div></td></tr>';
       return;
@@ -56,7 +56,7 @@ async function deleteUser(id, name) {
   if (!confirm(`¿Eliminar al usuario "${name}"? Esta acción no se puede deshacer.`)) return;
 
   try {
-    await api.delete(`/users/${id}`);
+    await api.delete(`/usuarios/${id}`);
     await loadUsers();
     showAlert('#alert-global', 'Usuario eliminado correctamente.', 'success');
   } catch (err) {
@@ -82,7 +82,7 @@ function initCreateForm() {
     }
 
     try {
-      await api.post('/users', data);
+      await api.post('/usuarios', data);
       window.location.href = '/usuarios/list.html';
     } catch (err) {
       showAlert('#alert-box', err.message, 'error');
@@ -92,7 +92,7 @@ function initCreateForm() {
 
 async function loadEditForm(id) {
   try {
-    const user = await api.get(`/users/${id}`);
+    const user = await api.get(`/usuarios/${id}`);
     document.getElementById('name').value = user.name;
     document.getElementById('username').value = user.username;
     document.getElementById('email').value = user.email;
@@ -116,7 +116,7 @@ async function loadEditForm(id) {
       if (pwd) data.password = pwd;
 
       try {
-        await api.put(`/users/${id}`, data);
+        await api.put(`/usuarios/${id}`, data);
         window.location.href = '/usuarios/list.html';
       } catch (err) {
         showAlert('#alert-box', err.message, 'error');

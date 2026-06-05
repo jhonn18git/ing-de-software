@@ -27,7 +27,7 @@ async function loadProducts() {
   tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
 
   try {
-    const products = await api.get('/products');
+    const products = await api.get('/productos');
     if (!products.length) {
       tbody.innerHTML = `<tr><td colspan="6">
         <div class="empty-state"><div class="icon">📦</div><h3>Sin productos</h3></div>
@@ -66,7 +66,7 @@ function canDelete(p) {
 async function deleteProduct(id, title) {
   if (!confirm(`¿Eliminar el producto "${title}"?`)) return;
   try {
-    await api.delete(`/products/${id}`);
+    await api.delete(`/productos/${id}`);
     await loadProducts();
     showAlert('#alert-global', 'Producto eliminado.', 'success');
   } catch (err) {
@@ -97,7 +97,7 @@ function initCreateForm() {
     }
 
     try {
-      await api.post('/products', data);
+      await api.post('/productos', data);
       window.location.href = '/productos/list.html';
     } catch (err) {
       showAlert('#alert-box', err.message, 'error');
@@ -107,7 +107,7 @@ function initCreateForm() {
 
 async function loadEditForm(id) {
   try {
-    const product = await api.get(`/products/${id}`);
+    const product = await api.get(`/productos/${id}`);
     document.getElementById('title').value = product.title;
     document.getElementById('description').value = product.description;
     document.getElementById('price').value = product.price;
@@ -124,7 +124,7 @@ async function loadEditForm(id) {
       };
 
       try {
-        await api.put(`/products/${id}`, data);
+        await api.put(`/productos/${id}`, data);
         window.location.href = '/productos/list.html';
       } catch (err) {
         showAlert('#alert-box', err.message, 'error');
@@ -140,7 +140,7 @@ async function loadPending() {
   tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
 
   try {
-    const products = await api.get('/products/pending');
+    const products = await api.get('/productos/pendientes');
     if (!products.length) {
       tbody.innerHTML = `<tr><td colspan="6">
         <div class="empty-state"><div class="icon">✅</div><h3>Sin productos pendientes</h3></div>
@@ -170,7 +170,7 @@ async function loadPending() {
 
 async function changeStatus(id, status) {
   try {
-    const res = await api.patch(`/products/${id}/status`, { status });
+    const res = await api.patch(`/productos/${id}/status`, { status });
     showAlert('#alert-global', res.message || `Producto ${status}.`, 'success');
     await loadPending();
   } catch (err) {

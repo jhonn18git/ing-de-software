@@ -125,11 +125,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const products = await api.get('/products');
+    const products = await api.get('/productos');
     const allProducts = user.rol === 'admin' ? products : null;
 
     if (user.rol === 'admin') {
-      const [users] = await Promise.all([api.get('/users')]);
+      const [users] = await Promise.all([api.get('/usuarios')]);
       document.getElementById('stat-users').textContent = users.length;
       document.getElementById('stat-products').textContent = products.length;
       document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
