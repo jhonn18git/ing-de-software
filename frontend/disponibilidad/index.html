@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Mi Disponibilidad</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Productos</a>
+      <div class="nav-section">Mi Horario</div>
+      <a href="/horario/index.html" class="nav-link"><span class="icon">📅</span> Mi Horario</a>
+      <a href="/materias/list.html" class="nav-link"><span class="icon">📚</span> Materias</a>
+      <a href="/disponibilidad/index.html" class="nav-link active"><span class="icon">🕐</span> Disponibilidad</a>
+      <a href="/evaluaciones/list.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Mi Disponibilidad Semanal</span>
+    </div>
+    <div class="page-content">
+      <div class="card" style="max-width:520px">
+        <div id="alert-box"></div>
+        <p style="color:#64748b;margin-bottom:1.5rem">
+          Indica cuántas horas tienes disponibles para estudiar cada día (0 – 12h).
+          El generador de horarios usará estos datos.
+        </p>
+        <form id="disp-form" novalidate>
+          <div class="dias-grid">
+            <div class="dia-row"><label>Lunes</label><input type="number" id="lunes" min="0" max="12" value="0"><span>h</span></div>
+            <div class="dia-row"><label>Martes</label><input type="number" id="martes" min="0" max="12" value="0"><span>h</span></div>
+            <div class="dia-row"><label>Miércoles</label><input type="number" id="miercoles" min="0" max="12" value="0"><span>h</span></div>
+            <div class="dia-row"><label>Jueves</label><input type="number" id="jueves" min="0" max="12" value="0"><span>h</span></div>
+            <div class="dia-row"><label>Viernes</label><input type="number" id="viernes" min="0" max="12" value="0"><span>h</span></div>
+            <div class="dia-row"><label>Sábado</label><input type="number" id="sabado" min="0" max="12" value="0"><span>h</span></div>
+            <div class="dia-row"><label>Domingo</label><input type="number" id="domingo" min="0" max="12" value="0"><span>h</span></div>
+          </div>
+
+          <div class="total-horas-box">
+            <div class="total-label">Total semanal: <strong id="total-horas">0</strong> horas</div>
+            <div class="total-bar-bg"><div class="total-bar-fill" id="total-bar" style="width:0%"></div></div>
+          </div>
+
+          <div style="margin-top:1.25rem">
+            <button type="submit" class="btn btn-primary">Guardar Disponibilidad</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/disponibilidad.js"></script>
+</body>
+</html>

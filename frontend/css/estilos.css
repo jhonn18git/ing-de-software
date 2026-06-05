@@ -480,6 +480,89 @@ tr:hover td { background: #f8fafc; }
 }
 
 /* ---- RESPONSIVE ---- */
+/* ---- STARS ---- */
+.stars { color: #f59e0b; font-size: 1.1rem; letter-spacing: 1px; }
+.stars-preview { font-size: 1.5rem; color: #f59e0b; margin-top: .4rem; min-height: 2rem; }
+
+/* ---- COLOR HELPERS ---- */
+.color-dot {
+  display: inline-block; width: 12px; height: 12px;
+  border-radius: 50%; margin-right: .4rem; vertical-align: middle;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+.color-code {
+  font-size: .8rem; padding: .15rem .5rem; border-radius: 4px;
+  background: #f8fafc; font-family: monospace;
+}
+.color-row { display: flex; align-items: center; gap: .75rem; }
+.color-picker { width: 52px; height: 38px; padding: 2px; border-radius: var(--radius); cursor: pointer; border: 1.5px solid var(--border); }
+.color-hint { font-size: .8rem; color: var(--text-muted); }
+
+/* ---- RANGE INPUT ---- */
+.range-input { width: 100%; accent-color: var(--primary); cursor: pointer; }
+
+/* ---- DISPONIBILIDAD ---- */
+.dias-grid { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; }
+.dia-row {
+  display: grid; grid-template-columns: 110px 1fr auto;
+  align-items: center; gap: .75rem;
+}
+.dia-row label { font-weight: 500; font-size: .9rem; }
+.dia-row input[type="number"] {
+  width: 100%; padding: .5rem .75rem; border: 1.5px solid var(--border);
+  border-radius: var(--radius); font-size: .95rem; text-align: center;
+}
+.dia-row input[type="number"]:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-light); }
+.dia-row span { color: var(--text-muted); font-size: .9rem; }
+
+.total-horas-box { margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: var(--radius); }
+.total-label { font-size: .95rem; margin-bottom: .5rem; }
+.total-label strong { color: var(--primary); font-size: 1.1rem; }
+.total-bar-bg { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.total-bar-fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width .3s; }
+
+/* ---- EVALUACION TIPO BADGES ---- */
+.tipo-examen { background: #ede9fe; color: #5b21b6; }
+.tipo-trabajo { background: #dbeafe; color: #1d4ed8; }
+.tipo-practica { background: #d1fae5; color: #065f46; }
+.tipo-otro { background: #f1f5f9; color: #475569; }
+
+/* ---- HORARIO GRID ---- */
+.horario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: .5rem;
+}
+.dia-col { display: flex; flex-direction: column; gap: .5rem; }
+.dia-header {
+  font-weight: 700; font-size: .8rem; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-muted);
+  padding: .4rem .75rem; background: #f8fafc;
+  border-radius: var(--radius); text-align: center;
+}
+.bloque-materia {
+  padding: .6rem .75rem; border-radius: var(--radius);
+  transition: transform .15s;
+}
+.bloque-materia:hover { transform: translateY(-1px); }
+.bloque-nombre { font-size: .85rem; font-weight: 600; color: var(--text); margin-bottom: .15rem; }
+.bloque-horas { font-size: .75rem; color: var(--text-muted); }
+
+/* ---- CHART CONTAINER ---- */
+.chart-container { position: relative; height: 260px; }
+
+/* ---- PASOS (horario/index.html) ---- */
+.paso-card {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .9rem 1rem; background: #f8fafc; border-radius: var(--radius);
+}
+.paso-num {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--primary);
+  color: #fff; font-weight: 700; font-size: .85rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-250px); }
   .sidebar.open { transform: translateX(0); }
@@ -487,4 +570,6 @@ tr:hover td { background: #f8fafc; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .topbar { padding: 0.75rem 1rem; }
   .page-content { padding: 1rem; }
+  .horario-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+  .dia-row { grid-template-columns: 90px 1fr auto; }
 }

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Mi Horario</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Productos</a>
+      <div class="nav-section">Mi Horario</div>
+      <a href="/horario/index.html" class="nav-link active"><span class="icon">📅</span> Mi Horario</a>
+      <a href="/materias/list.html" class="nav-link"><span class="icon">📚</span> Materias</a>
+      <a href="/disponibilidad/index.html" class="nav-link"><span class="icon">🕐</span> Disponibilidad</a>
+      <a href="/evaluaciones/list.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Mi Horario de Estudio</span>
+      <div style="display:flex;align-items:center;gap:1rem">
+        <span id="generated-at" style="font-size:.8rem;color:#64748b"></span>
+        <button id="btn-generar" onclick="generarHorario()" class="btn btn-primary btn-sm">⚡ Generar Horario</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div id="alert-global"></div>
+      <div id="prereq-box"></div>
+
+      <!-- Horario visual -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📅 Distribución Semanal</h2>
+        </div>
+        <div id="horario-container">
+          <div class="empty-state">
+            <div class="icon">📅</div>
+            <h3>Sin horario generado</h3>
+            <p style="color:#64748b;margin-top:.5rem">Configura tus materias y disponibilidad, luego presiona <strong>Generar Horario</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de horas por materia -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📊 Horas por Materia</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-horas"></canvas>
+        </div>
+      </div>
+
+      <!-- Guía de pasos -->
+      <div class="card">
+        <div class="card-header"><h2>📋 Cómo funciona</h2></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:.5rem">
+          <div class="paso-card">
+            <div class="paso-num">1</div>
+            <div><strong>Registra tus materias</strong><br>
+            <a href="/materias/create.html" style="color:var(--primary);font-size:.85rem">Ir a Materias →</a></div>
+          </div>
+          <div class="paso-card">
+            <div class="paso-num">2</div>
+            <div><strong>Configura disponibilidad</strong><br>
+            <a href="/disponibilidad/index.html" style="color:var(--primary);font-size:.85rem">Ir a Disponibilidad →</a></div>
+          </div>
+          <div class="paso-card">
+            <div class="paso-num">3</div>
+            <div><strong>Agrega evaluaciones</strong><br>
+            <a href="/evaluaciones/create.html" style="color:var(--primary);font-size:.85rem">Ir a Evaluaciones →</a></div>
+          </div>
+          <div class="paso-card">
+            <div class="paso-num">4</div>
+            <div><strong>¡Genera tu horario!</strong><br>
+            <span style="color:#64748b;font-size:.85rem">El algoritmo optimiza según urgencia</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/horario.js"></script>
+</body>
+</html>

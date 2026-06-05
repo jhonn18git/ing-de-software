@@ -20,10 +20,18 @@ def create_app():
     from app.routes.auth import auth_bp
     from app.routes.usuarios import usuarios_bp
     from app.routes.productos import productos_bp
+    from app.routes.materias import materias_bp
+    from app.routes.disponibilidad import disponibilidad_bp
+    from app.routes.evaluaciones import evaluaciones_bp
+    from app.routes.horarios import horarios_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(usuarios_bp, url_prefix='/api/usuarios')
     app.register_blueprint(productos_bp, url_prefix='/api/productos')
+    app.register_blueprint(materias_bp, url_prefix='/api/materias')
+    app.register_blueprint(disponibilidad_bp, url_prefix='/api/disponibilidad')
+    app.register_blueprint(evaluaciones_bp, url_prefix='/api/evaluaciones')
+    app.register_blueprint(horarios_bp, url_prefix='/api/horarios')
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')

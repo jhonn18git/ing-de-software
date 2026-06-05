@@ -14,9 +14,9 @@ def get_db():
 
 def init_db():
     conn = get_db()
-    cursor = conn.cursor()
+    c = conn.cursor()
 
-    cursor.execute('''
+    c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -30,7 +30,7 @@ def init_db():
         )
     ''')
 
-    cursor.execute('''
+    c.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -45,14 +45,65 @@ def init_db():
         )
     ''')
 
-    count = cursor.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS materias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            dificultad INTEGER CHECK(dificultad BETWEEN 1 AND 5) NOT NULL,
+            color TEXT DEFAULT '#3182ce',
+            usuario_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS disponibilidad (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL UNIQUE,
+            lunes INTEGER DEFAULT 0,
+            martes INTEGER DEFAULT 0,
+            miercoles INTEGER DEFAULT 0,
+            jueves INTEGER DEFAULT 0,
+            viernes INTEGER DEFAULT 0,
+            sabado INTEGER DEFAULT 0,
+            domingo INTEGER DEFAULT 0,
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS evaluaciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            materia_id INTEGER NOT NULL,
+            usuario_id INTEGER NOT NULL,
+            fecha DATE NOT NULL,
+            tipo TEXT CHECK(tipo IN ('examen', 'trabajo', 'practica', 'otro')) DEFAULT 'examen',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (materia_id) REFERENCES materias(id) ON DELETE CASCADE,
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS horarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL UNIQUE,
+            horario_json TEXT NOT NULL,
+            generado_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    count = c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     if count == 0:
         seed_users = [
             ('Jhonn Llanos Rojas', 'jhonn', 'jhonn@smartschedule.com', '123', 'admin'),
             ('Camila Montecinos Solis', 'camila', 'camila@smartschedule.com', '123', 'ofertante'),
             ('Erick Arancibia Flores', 'erick', 'erick@smartschedule.com', '123', 'demandante'),
         ]
-        cursor.executemany(
+        c.executemany(
             'INSERT INTO users (name, username, email, password, rol) VALUES (?, ?, ?, ?, ?)',
             seed_users
         )

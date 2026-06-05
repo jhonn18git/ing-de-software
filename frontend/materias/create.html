@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Nueva Materia</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Productos</a>
+      <div class="nav-section">Mi Horario</div>
+      <a href="/horario/index.html" class="nav-link"><span class="icon">📅</span> Mi Horario</a>
+      <a href="/materias/list.html" class="nav-link active"><span class="icon">📚</span> Materias</a>
+      <a href="/disponibilidad/index.html" class="nav-link"><span class="icon">🕐</span> Disponibilidad</a>
+      <a href="/evaluaciones/list.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Nueva Materia</span>
+      <a href="/materias/list.html" class="btn btn-secondary btn-sm">← Volver</a>
+    </div>
+    <div class="page-content">
+      <div class="card" style="max-width:480px">
+        <div id="alert-box"></div>
+        <form id="materia-form" novalidate>
+          <div class="form-group">
+            <label>Nombre de la materia</label>
+            <input type="text" id="nombre" placeholder="Ej: Matemáticas Discretas" required>
+          </div>
+          <div class="form-group">
+            <label>Dificultad</label>
+            <input type="range" id="dificultad" min="1" max="5" step="1" value="3" class="range-input">
+            <div id="star-preview" class="stars-preview"></div>
+          </div>
+          <div class="form-group">
+            <label>Color identificador</label>
+            <div class="color-row">
+              <input type="color" id="color" value="#3182ce" class="color-picker">
+              <span class="color-hint">Este color aparecerá en tu horario</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;margin-top:.5rem">
+            <button type="submit" class="btn btn-primary">Guardar Materia</button>
+            <a href="/materias/list.html" class="btn btn-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/materias.js"></script>
+</body>
+</html>

@@ -30,6 +30,11 @@
       <a href="/productos/create.html" class="nav-link ofertante-only" id="nav-create-product" style="display:none">
         <span class="icon">➕</span> Nuevo Producto
       </a>
+      <div class="nav-section">Mi Horario</div>
+      <a href="/horario/index.html" class="nav-link"><span class="icon">📅</span> Mi Horario</a>
+      <a href="/materias/list.html" class="nav-link"><span class="icon">📚</span> Materias</a>
+      <a href="/disponibilidad/index.html" class="nav-link"><span class="icon">🕐</span> Disponibilidad</a>
+      <a href="/evaluaciones/list.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-chip">
@@ -77,6 +82,27 @@
           <div>
             <div class="stat-number" id="stat-approved">—</div>
             <div class="stat-label">Aprobados</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">📚</div>
+          <div>
+            <div class="stat-number" id="stat-materias">—</div>
+            <div class="stat-label">Materias</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">🕐</div>
+          <div>
+            <div class="stat-number" id="stat-horas">—</div>
+            <div class="stat-label">Horas/semana</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">📝</div>
+          <div>
+            <div class="stat-number" id="stat-prox-eval" style="font-size:1rem">—</div>
+            <div class="stat-label">Próxima Eval.</div>
           </div>
         </div>
       </div>
@@ -137,6 +163,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     showAlert('#alert-global', 'No se pudieron cargar las estadísticas: ' + err.message, 'error');
   }
+
+  try {
+    const materias = await api.get('/materias');
+    document.getElementById('stat-materias').textContent = materias.length;
+  } catch (_) {}
+
+  try {
+    const disp = await api.get('/disponibilidad');
+    const DIAS = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+    const total = DIAS.reduce((s, d) => s + (disp[d] || 0), 0);
+    document.getElementById('stat-horas').textContent = total + 'h';
+  } catch (_) {}
+
+  try {
+    const evals = await api.get('/evaluaciones');
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const proximas = evals
+      .map(e => ({ ...e, _d: new Date(e.fecha + 'T00:00:00') }))
+      .filter(e => e._d >= hoy)
+      .sort((a, b) => a._d - b._d);
+    if (proximas.length) {
+      const p = proximas[0];
+      const diff = Math.round((p._d - hoy) / 86400000);
+      document.getElementById('stat-prox-eval').textContent =
+        diff === 0 ? 'Hoy' : diff === 1 ? 'Mañana' : 'en ' + diff + 'd';
+      document.getElementById('stat-prox-eval').title = escHtml(p.titulo);
+    } else {
+      document.getElementById('stat-prox-eval').textContent = 'Ninguna';
+    }
+  } catch (_) {}
 });
 </script>
 </body>
