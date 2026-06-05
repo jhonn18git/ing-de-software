@@ -1,5 +1,6 @@
+import traceback
 from flask import Blueprint, jsonify, request, session
-from app.database import get_db
+from app.database import get_db, DB_PATH
 from app.middleware import require_auth
 
 perfil_bp = Blueprint('perfil', __name__)
@@ -70,26 +71,57 @@ def get_carreras():
 @perfil_bp.route('/semestres', methods=['GET'])
 @require_auth
 def get_semestres():
-    # Las planillas USFX solo publican semestre 1; devolvemos 1-10 estáticamente
-    # porque todas las ingenierías tienen 10 semestres.
-    return jsonify(list(range(1, 11))), 200
+    try:
+        carrera = request.args.get('carrera', '').strip()
+        print(f"DEBUG semestres - carrera recibida: '{carrera}'")
+        print(f"DEBUG semestres - DB_PATH: '{DB_PATH}'")
+
+        conn = get_db()
+        todas = conn.execute(
+            "SELECT DISTINCT carrera FROM horarios_usfx"
+        ).fetchall()
+        print(f"DEBUG semestres - carreras en DB: {[r[0] for r in todas]}")
+
+        rows = conn.execute(
+            "SELECT DISTINCT semestre FROM horarios_usfx WHERE carrera = ? ORDER BY semestre ASC",
+            (carrera,)
+        ).fetchall()
+        conn.close()
+        print(f"DEBUG semestres - encontrados en DB: {[r[0] for r in rows]}")
+
+        # Las planillas solo tienen semestre 1; devolvemos 1-10 siempre
+        return jsonify(list(range(1, 11))), 200
+    except Exception as e:
+        print(f"ERROR en /semestres: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @perfil_bp.route('/grupos', methods=['GET'])
 @require_auth
 def get_grupos():
-    carrera  = request.args.get('carrera', '')
-    semestre = request.args.get('semestre', '')
-    db = get_db()
-    rows = db.execute(
-        '''SELECT DISTINCT grupo FROM horarios_usfx
-           WHERE carrera=? AND semestre=? ORDER BY grupo''',
-        (carrera, semestre)
-    ).fetchall()
-    db.close()
-    grupos = [r['grupo'] for r in rows]
-    # Si no hay grupos en la DB (semestres 2-10 sin datos reales),
-    # devolvemos grupos genéricos para que el perfil se pueda guardar.
-    if not grupos:
-        grupos = ['A', 'B', 'C', 'NUEVOS A', 'NUEVOS B']
-    return jsonify(grupos), 200
+    try:
+        carrera  = request.args.get('carrera', '').strip()
+        semestre = request.args.get('semestre', '').strip()
+        print(f"DEBUG grupos - carrera='{carrera}' semestre='{semestre}'")
+
+        conn = get_db()
+        rows = conn.execute(
+            '''SELECT DISTINCT grupo FROM horarios_usfx
+               WHERE carrera=? AND semestre=? ORDER BY grupo''',
+            (carrera, semestre)
+        ).fetchall()
+        conn.close()
+
+        grupos = [r[0] for r in rows]
+        print(f"DEBUG grupos - encontrados: {grupos}")
+
+        if not grupos:
+            grupos = ['A', 'B', 'C', 'NUEVOS A', 'NUEVOS B']
+            print("DEBUG grupos - usando fallback genérico")
+
+        return jsonify(grupos), 200
+    except Exception as e:
+        print(f"ERROR en /grupos: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
