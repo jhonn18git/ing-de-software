@@ -61,20 +61,5 @@
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/productos.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const user = await getCurrentUser();
-  if (!user) return;
-  if (user.rol === 'admin') {
-    document.getElementById('nav-admin-section').style.display = 'block';
-    document.getElementById('nav-users').style.display = 'flex';
-    document.getElementById('nav-pending').style.display = 'flex';
-  }
-  if (user.rol !== 'demandante') {
-    document.getElementById('nav-create').style.display = 'flex';
-    document.getElementById('btn-create').style.display = 'inline-flex';
-  }
-});
-</script>
 </body>
 </html>

@@ -34,21 +34,23 @@ async function loadUsers() {
 
     tbody.innerHTML = users.map(u => `
       <tr>
-        <td><strong>${u.name}</strong></td>
-        <td>${u.username}</td>
-        <td>${u.email}</td>
+        <td><strong>${escHtml(u.name)}</strong></td>
+        <td>${escHtml(u.username)}</td>
+        <td>${escHtml(u.email)}</td>
         <td>${getBadgeHtml(u.rol)}</td>
         <td>${formatDate(u.created_at)}</td>
         <td>
           <div class="actions">
             <a href="/usuarios/edit.html?id=${u.id}" class="btn btn-sm btn-secondary">Editar</a>
-            ${u.id !== currentUser.id ? `<button onclick="deleteUser(${u.id}, '${u.name}')" class="btn btn-sm btn-danger">Eliminar</button>` : ''}
+            ${u.id !== currentUser.id
+              ? `<button class="btn btn-sm btn-danger" data-action="delete-user" data-id="${u.id}" data-name="${escHtml(u.name)}">Eliminar</button>`
+              : ''}
           </div>
         </td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${err.message}</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${escHtml(err.message)}</div></td></tr>`;
   }
 }
 
@@ -112,6 +114,11 @@ async function loadEditForm(id) {
         rol: currentUser.rol === 'admin' ? document.getElementById('rol').value : undefined
       };
 
+      if (!data.name || !data.username || !data.email) {
+        showAlert('#alert-box', 'Nombre, usuario y email son obligatorios.', 'error');
+        return;
+      }
+
       const pwd = document.getElementById('password').value;
       if (pwd) data.password = pwd;
 
@@ -126,5 +133,11 @@ async function loadEditForm(id) {
     showAlert('#alert-box', err.message, 'error');
   }
 }
+
+document.addEventListener('click', function (e) {
+  const btn = e.target.closest('[data-action="delete-user"]');
+  if (!btn) return;
+  deleteUser(Number(btn.dataset.id), btn.dataset.name);
+});
 
 document.addEventListener('DOMContentLoaded', init);

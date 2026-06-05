@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('welcome-msg').innerHTML =
-    `Hola, <strong>${user.name}</strong>. Tienes el rol de <strong>${user.rol}</strong>.`;
+    `Hola, <strong>${escHtml(user.name)}</strong>. Tienes el rol de <strong>${escHtml(user.rol)}</strong>.`;
 
   const qas = document.getElementById('quick-actions');
   if (user.rol === 'admin') {
@@ -126,21 +126,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     const products = await api.get('/productos');
-    const allProducts = user.rol === 'admin' ? products : null;
+    document.getElementById('stat-products').textContent = products.length;
+    document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
+    document.getElementById('stat-approved').textContent = products.filter(p => p.status === 'aprobado').length;
 
     if (user.rol === 'admin') {
-      const [users] = await Promise.all([api.get('/usuarios')]);
+      const users = await api.get('/usuarios');
       document.getElementById('stat-users').textContent = users.length;
-      document.getElementById('stat-products').textContent = products.length;
-      document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
-      document.getElementById('stat-approved').textContent = products.filter(p => p.status === 'aprobado').length;
-    } else {
-      document.getElementById('stat-users').textContent = '—';
-      document.getElementById('stat-products').textContent = products.length;
-      document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
-      document.getElementById('stat-approved').textContent = products.filter(p => p.status === 'aprobado').length;
     }
-  } catch {}
+  } catch (err) {
+    showAlert('#alert-global', 'No se pudieron cargar las estadísticas: ' + err.message, 'error');
+  }
 });
 </script>
 </body>

@@ -11,6 +11,10 @@ PRODUCT_QUERY = '''
 '''
 
 
+def _valid_price(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0
+
+
 @productos_bp.route('', methods=['GET'])
 @require_auth
 def list_products():
@@ -67,15 +71,17 @@ def get_product(id):
 @require_ofertante
 def create_product():
     user = session['user']
-    data = request.get_json()
+    data = request.get_json() or {}
 
     title = data.get('title', '').strip()
     description = data.get('description', '').strip()
     price = data.get('price')
     category = data.get('category', '').strip()
 
-    if not all([title, description, category]) or price is None:
+    if not all([title, description, category]):
         return jsonify({'error': 'Todos los campos son obligatorios'}), 400
+    if not _valid_price(price):
+        return jsonify({'error': 'El precio debe ser un número mayor o igual a 0'}), 400
 
     conn = get_db()
     cursor = conn.execute(
@@ -107,11 +113,15 @@ def update_product(id):
         conn.close()
         return jsonify({'error': 'Acceso denegado'}), 403
 
-    data = request.get_json()
+    data = request.get_json() or {}
     title = data.get('title', p['title'])
     description = data.get('description', p['description'])
     price = data.get('price', p['price'])
     category = data.get('category', p['category'])
+
+    if not _valid_price(price):
+        conn.close()
+        return jsonify({'error': 'El precio debe ser un número mayor o igual a 0'}), 400
 
     conn.execute(
         "UPDATE products SET title=?, description=?, price=?, category=?, status='pendiente', updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -151,11 +161,11 @@ def delete_product(id):
 @productos_bp.route('/<int:id>/status', methods=['PATCH'])
 @require_admin
 def change_status(id):
-    data = request.get_json()
+    data = request.get_json() or {}
     status = data.get('status')
 
     if status not in ['aprobado', 'rechazado', 'pendiente']:
-        return jsonify({'error': 'Estado inválido'}), 400
+        return jsonify({'error': 'Estado inválido. Use: aprobado, rechazado o pendiente'}), 400
 
     conn = get_db()
     product = conn.execute('SELECT id FROM products WHERE id = ?', (id,)).fetchone()

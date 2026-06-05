@@ -35,7 +35,7 @@ def get_user(id):
 @usuarios_bp.route('', methods=['POST'])
 @require_admin
 def create_user():
-    data = request.get_json()
+    data = request.get_json() or {}
     name = data.get('name', '').strip()
     username = data.get('username', '').strip()
     email = data.get('email', '').strip()
@@ -77,13 +77,17 @@ def update_user(id):
         conn.close()
         return jsonify({'error': 'Usuario no encontrado'}), 404
 
-    data = request.get_json()
+    data = request.get_json() or {}
     u = dict(user)
     name = data.get('name', u['name'])
     username = data.get('username', u['username'])
     email = data.get('email', u['email'])
-    password = data.get('password', u['password'])
+    password = data.get('password') or u['password']
     rol = data.get('rol', u['rol']) if current['rol'] == 'admin' else u['rol']
+
+    if not all([name, username, email]):
+        conn.close()
+        return jsonify({'error': 'Nombre, usuario y email son obligatorios'}), 400
 
     try:
         conn.execute(
@@ -93,7 +97,12 @@ def update_user(id):
         conn.commit()
         updated = conn.execute(f'SELECT {SAFE_FIELDS} FROM users WHERE id = ?', (id,)).fetchone()
         conn.close()
-        return jsonify(dict(updated))
+        updated_dict = dict(updated)
+
+        if id == current['id']:
+            session['user'] = updated_dict
+
+        return jsonify(updated_dict)
     except Exception as e:
         conn.close()
         if 'UNIQUE' in str(e):

@@ -4,6 +4,7 @@ async function init() {
   currentUser = await requireSession();
   if (!currentUser) return;
   setUserChip(currentUser);
+  updateSidebar(currentUser);
 
   const path = window.location.pathname;
 
@@ -22,6 +23,24 @@ async function init() {
   }
 }
 
+function updateSidebar(user) {
+  const navAdmin = document.getElementById('nav-admin-section');
+  const navUsers = document.getElementById('nav-users');
+  const navPending = document.getElementById('nav-pending');
+  const navCreate = document.getElementById('nav-create');
+  const btnCreate = document.getElementById('btn-create');
+
+  if (user.rol === 'admin') {
+    if (navAdmin) navAdmin.style.display = 'block';
+    if (navUsers) navUsers.style.display = 'flex';
+    if (navPending) navPending.style.display = 'flex';
+  }
+  if (user.rol !== 'demandante') {
+    if (navCreate) navCreate.style.display = 'flex';
+    if (btnCreate) btnCreate.style.display = 'inline-flex';
+  }
+}
+
 async function loadProducts() {
   const tbody = document.getElementById('products-tbody');
   tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
@@ -37,21 +56,21 @@ async function loadProducts() {
 
     tbody.innerHTML = products.map(p => `
       <tr>
-        <td><strong>${p.title}</strong></td>
-        <td>${p.category}</td>
+        <td><strong>${escHtml(p.title)}</strong></td>
+        <td>${escHtml(p.category)}</td>
         <td>Bs. ${parseFloat(p.price).toFixed(2)}</td>
         <td>${getStatusBadge(p.status)}</td>
-        <td>${p.ofertante_name || '—'}</td>
+        <td>${escHtml(p.ofertante_name || '—')}</td>
         <td>
           <div class="actions">
             ${canEdit(p) ? `<a href="/productos/edit.html?id=${p.id}" class="btn btn-sm btn-secondary">Editar</a>` : ''}
-            ${canDelete(p) ? `<button onclick="deleteProduct(${p.id}, '${p.title}')" class="btn btn-sm btn-danger">Eliminar</button>` : ''}
+            ${canDelete(p) ? `<button class="btn btn-sm btn-danger" data-action="delete-product" data-id="${p.id}" data-title="${escHtml(p.title)}">Eliminar</button>` : ''}
           </div>
         </td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${err.message}</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${escHtml(err.message)}</div></td></tr>`;
   }
 }
 
@@ -91,8 +110,8 @@ function initCreateForm() {
       category: document.getElementById('category').value.trim()
     };
 
-    if (!data.title || !data.description || isNaN(data.price) || !data.category) {
-      showAlert('#alert-box', 'Todos los campos son obligatorios.', 'error');
+    if (!data.title || !data.description || isNaN(data.price) || data.price < 0 || !data.category) {
+      showAlert('#alert-box', 'Todos los campos son obligatorios y el precio debe ser ≥ 0.', 'error');
       return;
     }
 
@@ -123,6 +142,11 @@ async function loadEditForm(id) {
         category: document.getElementById('category').value.trim()
       };
 
+      if (!data.title || !data.description || isNaN(data.price) || data.price < 0 || !data.category) {
+        showAlert('#alert-box', 'Todos los campos son obligatorios y el precio debe ser ≥ 0.', 'error');
+        return;
+      }
+
       try {
         await api.put(`/productos/${id}`, data);
         window.location.href = '/productos/list.html';
@@ -150,21 +174,21 @@ async function loadPending() {
 
     tbody.innerHTML = products.map(p => `
       <tr>
-        <td><strong>${p.title}</strong></td>
-        <td>${p.category}</td>
+        <td><strong>${escHtml(p.title)}</strong></td>
+        <td>${escHtml(p.category)}</td>
         <td>Bs. ${parseFloat(p.price).toFixed(2)}</td>
-        <td>${p.ofertante_name || '—'}</td>
+        <td>${escHtml(p.ofertante_name || '—')}</td>
         <td>${formatDate(p.created_at)}</td>
         <td>
           <div class="actions">
-            <button onclick="changeStatus(${p.id}, 'aprobado')" class="btn btn-sm btn-success">Aprobar</button>
-            <button onclick="changeStatus(${p.id}, 'rechazado')" class="btn btn-sm btn-danger">Rechazar</button>
+            <button class="btn btn-sm btn-success" data-action="status" data-id="${p.id}" data-status="aprobado">Aprobar</button>
+            <button class="btn btn-sm btn-danger" data-action="status" data-id="${p.id}" data-status="rechazado">Rechazar</button>
           </div>
         </td>
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${err.message}</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${escHtml(err.message)}</div></td></tr>`;
   }
 }
 
@@ -177,5 +201,14 @@ async function changeStatus(id, status) {
     showAlert('#alert-global', err.message, 'error');
   }
 }
+
+document.addEventListener('click', function (e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const id = Number(btn.dataset.id);
+  if (action === 'delete-product') deleteProduct(id, btn.dataset.title);
+  if (action === 'status') changeStatus(id, btn.dataset.status);
+});
 
 document.addEventListener('DOMContentLoaded', init);

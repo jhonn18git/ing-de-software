@@ -23,10 +23,19 @@ const api = {
   delete: (endpoint) => apiRequest('DELETE', endpoint)
 };
 
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function showAlert(container, message, type = 'error') {
   const el = document.querySelector(container);
   if (!el) return;
-  el.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+  el.innerHTML = `<div class="alert alert-${type}">${escHtml(message)}</div>`;
   setTimeout(() => { if (el) el.innerHTML = ''; }, 5000);
 }
 
@@ -39,12 +48,12 @@ function formatDate(dateStr) {
 
 function getBadgeHtml(rol) {
   const map = { admin: 'badge-admin', ofertante: 'badge-ofertante', demandante: 'badge-demandante' };
-  return `<span class="badge ${map[rol] || ''}">${rol}</span>`;
+  return `<span class="badge ${map[rol] || ''}">${escHtml(rol)}</span>`;
 }
 
 function getStatusBadge(status) {
   const map = { pendiente: 'badge-pendiente', aprobado: 'badge-aprobado', rechazado: 'badge-rechazado' };
-  return `<span class="badge ${map[status] || ''}">${status}</span>`;
+  return `<span class="badge ${map[status] || ''}">${escHtml(status)}</span>`;
 }
 
 async function getCurrentUser() {

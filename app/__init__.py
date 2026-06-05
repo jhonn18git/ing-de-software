@@ -1,7 +1,6 @@
 import os
 from flask import Flask, send_from_directory
 from flask_session import Session
-from flask_cors import CORS
 from app.database import init_db
 
 
@@ -12,10 +11,10 @@ def create_app():
     app.config['SESSION_TYPE'] = 'filesystem'
     app.config['SESSION_FILE_DIR'] = './flask_sessions'
     app.config['SESSION_PERMANENT'] = False
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
 
-    CORS(app, supports_credentials=True)
     Session(app)
-
     init_db()
 
     from app.routes.auth import auth_bp
@@ -29,7 +28,8 @@ def create_app():
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
-        if path and os.path.exists(os.path.join(app.static_folder, path)):
+        full = os.path.join(app.static_folder, path)
+        if path and os.path.isfile(full):
             return send_from_directory(app.static_folder, path)
         return send_from_directory(app.static_folder, 'index.html')
 
