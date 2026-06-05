@@ -133,9 +133,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-    # Cargar horarios USFX (solo si tabla vacía)
+    # Cargar horarios USFX desde seed hardcodeado
+    conn2 = get_db()
     try:
-        from app.parser_horarios import parsear_y_cargar_horarios
-        parsear_y_cargar_horarios(DB_PATH)
+        from app.seed_horarios import seed_horarios
+        seed_horarios(conn2)
     except Exception as exc:
         logger.warning("No se cargaron horarios USFX: %s", exc)
+    finally:
+        conn2.close()
