@@ -561,6 +561,12 @@ HORARIOS_USFX = [
 ]
 
 
+# NOTA: Las planillas USFX en este seed solo contienen semestre 1 para todas
+# las carreras. Los semestres 2+ de CIC, TIS, TEL y Ciberseguridad comparten
+# horarios con Ingeniería de Sistemas en las planillas oficiales, por lo que
+# esos datos se almacenan (o deben cargarse) bajo carrera='Ingeniería de Sistemas'.
+# La lógica de búsqueda en app/carreras.py (CARRERAS_RELACIONADAS) maneja
+# esta equivalencia en tiempo de ejecución.
 def seed_horarios(conn):
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) FROM horarios_usfx")

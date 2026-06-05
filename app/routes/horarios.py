@@ -3,6 +3,7 @@ from flask import Blueprint, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
 from app.algoritmo import generar_horario
+from app.carreras import get_carreras_buscar
 
 horario_bp = Blueprint('horario', __name__)
 
@@ -78,12 +79,15 @@ def get_clases():
         db.close()
         return jsonify({'clases': [], 'perfil': None}), 200
 
+    carreras_buscar = get_carreras_buscar(perfil['carrera'])
+    placeholders = ','.join('?' * len(carreras_buscar))
+
     rows = db.execute(
-        '''SELECT dia, hora_inicio, hora_fin, materia_codigo, materia_nombre, aula
+        f'''SELECT dia, hora_inicio, hora_fin, materia_codigo, materia_nombre, aula
            FROM horarios_usfx
-           WHERE carrera=? AND semestre=? AND grupo=?
+           WHERE carrera IN ({placeholders}) AND semestre=? AND grupo=?
            ORDER BY dia, hora_inicio''',
-        (perfil['carrera'], perfil['semestre'], perfil['grupo'])
+        (*carreras_buscar, perfil['semestre'], perfil['grupo'])
     ).fetchall()
     db.close()
     return jsonify({'clases': [dict(r) for r in rows], 'perfil': dict(perfil)}), 200

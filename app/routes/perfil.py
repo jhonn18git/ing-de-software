@@ -2,6 +2,7 @@ import traceback
 from flask import Blueprint, jsonify, request, session
 from app.database import get_db, DB_PATH
 from app.middleware import require_auth
+from app.carreras import get_carreras_buscar
 
 perfil_bp = Blueprint('perfil', __name__)
 
@@ -73,24 +74,21 @@ def get_carreras():
 def get_semestres():
     try:
         carrera = request.args.get('carrera', '').strip()
-        print(f"DEBUG semestres - carrera recibida: '{carrera}'")
-        print(f"DEBUG semestres - DB_PATH: '{DB_PATH}'")
+        carreras_buscar = get_carreras_buscar(carrera)
+        placeholders = ','.join('?' * len(carreras_buscar))
 
         conn = get_db()
-        todas = conn.execute(
-            "SELECT DISTINCT carrera FROM horarios_usfx"
-        ).fetchall()
-        print(f"DEBUG semestres - carreras en DB: {[r[0] for r in todas]}")
-
         rows = conn.execute(
-            "SELECT DISTINCT semestre FROM horarios_usfx WHERE carrera = ? ORDER BY semestre ASC",
-            (carrera,)
+            f"SELECT DISTINCT semestre FROM horarios_usfx WHERE carrera IN ({placeholders}) ORDER BY semestre ASC",
+            tuple(carreras_buscar)
         ).fetchall()
         conn.close()
-        print(f"DEBUG semestres - encontrados en DB: {[r[0] for r in rows]}")
 
-        # Las planillas solo tienen semestre 1; devolvemos 1-10 siempre
-        return jsonify(list(range(1, 11))), 200
+        semestres = [r[0] for r in rows]
+        print(f"DEBUG semestres - carrera='{carrera}' buscado en={carreras_buscar} encontrados={semestres}")
+        if not semestres:
+            semestres = list(range(1, 11))
+        return jsonify(semestres), 200
     except Exception as e:
         print(f"ERROR en /semestres: {e}")
         traceback.print_exc()
@@ -103,27 +101,19 @@ def get_grupos():
     try:
         carrera  = request.args.get('carrera', '').strip()
         semestre = request.args.get('semestre', '').strip()
-        print(f"DEBUG grupos - carrera: '{carrera}', semestre: '{semestre}'")
+        carreras_buscar = get_carreras_buscar(carrera)
+        placeholders = ','.join('?' * len(carreras_buscar))
 
         conn = get_db()
-
-        total = conn.execute("SELECT COUNT(*) FROM horarios_usfx").fetchone()[0]
-        print(f"DEBUG grupos - total filas horarios_usfx: {total}")
-
-        muestra = conn.execute(
-            "SELECT DISTINCT carrera, semestre, grupo FROM horarios_usfx LIMIT 20"
-        ).fetchall()
-        print(f"DEBUG muestra DB: {[tuple(r) for r in muestra]}")
-
         rows = conn.execute(
-            '''SELECT DISTINCT grupo FROM horarios_usfx
-               WHERE carrera=? AND semestre=? ORDER BY grupo''',
-            (carrera, semestre)
+            f'''SELECT DISTINCT grupo FROM horarios_usfx
+               WHERE carrera IN ({placeholders}) AND semestre=? ORDER BY grupo''',
+            (*carreras_buscar, semestre)
         ).fetchall()
         conn.close()
 
         grupos = [r[0] for r in rows]
-        print(f"DEBUG grupos - encontrados: {grupos}")
+        print(f"DEBUG grupos - carrera='{carrera}' sem={semestre} buscado en={carreras_buscar} grupos={grupos}")
 
         if not grupos:
             grupos = ['A', 'B', 'C', 'NUEVOS A', 'NUEVOS B']

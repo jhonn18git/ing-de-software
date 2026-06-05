@@ -1,6 +1,7 @@
 from flask import Blueprint, request, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
+from app.carreras import get_carreras_buscar
 
 materias_bp = Blueprint('materias', __name__)
 
@@ -46,34 +47,37 @@ def sync_materias():
     total_usfx = db.execute("SELECT COUNT(*) FROM horarios_usfx").fetchone()[0]
     print(f"DEBUG sync - total en horarios_usfx: {total_usfx}")
 
-    # Obtener materias distintas del horario USFX
+    carreras_buscar = get_carreras_buscar(perfil['carrera'])
+    placeholders = ','.join('?' * len(carreras_buscar))
+
     usfx = db.execute(
-        '''SELECT DISTINCT materia_codigo, materia_nombre
+        f'''SELECT DISTINCT materia_codigo, materia_nombre
            FROM horarios_usfx
-           WHERE carrera=? AND semestre=? AND grupo=?
+           WHERE carrera IN ({placeholders}) AND semestre=? AND grupo=?
            ORDER BY materia_codigo''',
-        (perfil['carrera'], perfil['semestre'], perfil['grupo'])
+        (*carreras_buscar, perfil['semestre'], perfil['grupo'])
     ).fetchall()
-    print(f"DEBUG sync - materias encontradas: {[r['materia_codigo'] for r in usfx]}")
+    print(f"DEBUG sync - carreras={carreras_buscar} materias={[r['materia_codigo'] for r in usfx]}")
 
     if not usfx:
-        # Fallback: buscar sin filtrar por grupo (por si el nombre del grupo no coincide exactamente)
+        # Fallback sin grupo: el nombre del grupo puede no coincidir exactamente
         usfx = db.execute(
-            '''SELECT DISTINCT materia_codigo, materia_nombre
+            f'''SELECT DISTINCT materia_codigo, materia_nombre
                FROM horarios_usfx
-               WHERE carrera=? AND semestre=?
+               WHERE carrera IN ({placeholders}) AND semestre=?
                ORDER BY materia_codigo''',
-            (perfil['carrera'], perfil['semestre'])
+            (*carreras_buscar, perfil['semestre'])
         ).fetchall()
-        print(f"DEBUG sync (fallback sin grupo) - materias: {[r['materia_codigo'] for r in usfx]}")
+        print(f"DEBUG sync (sin grupo) - materias={[r['materia_codigo'] for r in usfx]}")
 
     if not usfx:
         db.close()
         return jsonify({
             'error': (
-                f"Sin materias para: carrera='{perfil['carrera']}' "
+                f"Sin materias para carrera='{perfil['carrera']}' "
+                f"(buscado en: {carreras_buscar}) "
                 f"semestre={perfil['semestre']} grupo='{perfil['grupo']}'. "
-                f"Total filas en DB: {total_usfx}"
+                f"Total en DB: {total_usfx}"
             )
         }), 400
 
