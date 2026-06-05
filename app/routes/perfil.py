@@ -70,14 +70,9 @@ def get_carreras():
 @perfil_bp.route('/semestres', methods=['GET'])
 @require_auth
 def get_semestres():
-    carrera = request.args.get('carrera', '')
-    db = get_db()
-    rows = db.execute(
-        'SELECT DISTINCT semestre FROM horarios_usfx WHERE carrera=? ORDER BY semestre',
-        (carrera,)
-    ).fetchall()
-    db.close()
-    return jsonify([r['semestre'] for r in rows]), 200
+    # Las planillas USFX solo publican semestre 1; devolvemos 1-10 estáticamente
+    # porque todas las ingenierías tienen 10 semestres.
+    return jsonify(list(range(1, 11))), 200
 
 
 @perfil_bp.route('/grupos', methods=['GET'])
@@ -92,4 +87,9 @@ def get_grupos():
         (carrera, semestre)
     ).fetchall()
     db.close()
-    return jsonify([r['grupo'] for r in rows]), 200
+    grupos = [r['grupo'] for r in rows]
+    # Si no hay grupos en la DB (semestres 2-10 sin datos reales),
+    # devolvemos grupos genéricos para que el perfil se pueda guardar.
+    if not grupos:
+        grupos = ['A', 'B', 'C', 'NUEVOS A', 'NUEVOS B']
+    return jsonify(grupos), 200
