@@ -19,6 +19,14 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
 
+    # TEMP: forzar recarga del seed con datos CIC semestres 2-10.
+    # Quitar este bloque después de confirmar que funciona en Render.
+    try:
+        conn.execute("DELETE FROM horarios_usfx")
+        conn.commit()
+    except Exception:
+        pass
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
