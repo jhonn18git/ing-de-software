@@ -41,6 +41,11 @@ def sync_materias():
         db.close()
         return jsonify({'error': 'Configura tu perfil académico primero'}), 400
 
+    print(f"DEBUG sync - perfil: carrera='{perfil['carrera']}' semestre={perfil['semestre']} grupo='{perfil['grupo']}'")
+
+    total_usfx = db.execute("SELECT COUNT(*) FROM horarios_usfx").fetchone()[0]
+    print(f"DEBUG sync - total en horarios_usfx: {total_usfx}")
+
     # Obtener materias distintas del horario USFX
     usfx = db.execute(
         '''SELECT DISTINCT materia_codigo, materia_nombre
@@ -49,6 +54,7 @@ def sync_materias():
            ORDER BY materia_codigo''',
         (perfil['carrera'], perfil['semestre'], perfil['grupo'])
     ).fetchall()
+    print(f"DEBUG sync - materias encontradas: {[r['materia_codigo'] for r in usfx]}")
 
     if not usfx:
         db.close()

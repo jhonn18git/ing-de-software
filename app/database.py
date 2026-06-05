@@ -142,4 +142,7 @@ def init_db():
     from app.seed_horarios import seed_horarios
     seed_horarios(conn)
 
+    count = conn.execute("SELECT COUNT(*) FROM horarios_usfx").fetchone()[0]
+    print(f"DEBUG init_db - horarios_usfx tiene {count} filas al finalizar init_db")
+
     conn.close()

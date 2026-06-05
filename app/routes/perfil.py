@@ -103,9 +103,18 @@ def get_grupos():
     try:
         carrera  = request.args.get('carrera', '').strip()
         semestre = request.args.get('semestre', '').strip()
-        print(f"DEBUG grupos - carrera='{carrera}' semestre='{semestre}'")
+        print(f"DEBUG grupos - carrera: '{carrera}', semestre: '{semestre}'")
 
         conn = get_db()
+
+        total = conn.execute("SELECT COUNT(*) FROM horarios_usfx").fetchone()[0]
+        print(f"DEBUG grupos - total filas horarios_usfx: {total}")
+
+        muestra = conn.execute(
+            "SELECT DISTINCT carrera, semestre, grupo FROM horarios_usfx LIMIT 20"
+        ).fetchall()
+        print(f"DEBUG muestra DB: {[tuple(r) for r in muestra]}")
+
         rows = conn.execute(
             '''SELECT DISTINCT grupo FROM horarios_usfx
                WHERE carrera=? AND semestre=? ORDER BY grupo''',
