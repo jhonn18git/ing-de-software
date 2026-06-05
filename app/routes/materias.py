@@ -4,98 +4,149 @@ from app.middleware import require_auth
 
 materias_bp = Blueprint('materias', __name__)
 
+COLORES_DEFAULT = [
+    '#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#3182ce',
+    '#805ad5', '#d53f8c', '#00b5d8', '#2d3748', '#744210',
+]
+
 
 @materias_bp.route('', methods=['GET'])
 @require_auth
-def list_materias():
-    user = session['user']
-    conn = get_db()
-    rows = conn.execute(
-        'SELECT * FROM materias WHERE usuario_id = ? ORDER BY nombre',
-        (user['id'],)
+def get_materias():
+    uid = session['user']['id']
+    db = get_db()
+    rows = db.execute(
+        'SELECT * FROM materias_estudiante WHERE usuario_id=? ORDER BY materia_nombre',
+        (uid,)
     ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+    db.close()
+    return jsonify([dict(r) for r in rows]), 200
 
 
-@materias_bp.route('', methods=['POST'])
+@materias_bp.route('/sync', methods=['POST'])
 @require_auth
-def create_materia():
-    user = session['user']
+def sync_materias():
+    """
+    Importa las materias del estudiante desde horarios_usfx
+    según su perfil académico (carrera/semestre/grupo).
+    """
+    uid = session['user']['id']
+    db = get_db()
+
+    perfil = db.execute(
+        'SELECT carrera, semestre, grupo FROM perfil_academico WHERE usuario_id=?',
+        (uid,)
+    ).fetchone()
+    if not perfil:
+        db.close()
+        return jsonify({'error': 'Configura tu perfil académico primero'}), 400
+
+    # Obtener materias distintas del horario USFX
+    usfx = db.execute(
+        '''SELECT DISTINCT materia_codigo, materia_nombre
+           FROM horarios_usfx
+           WHERE carrera=? AND semestre=? AND grupo=?
+           ORDER BY materia_codigo''',
+        (perfil['carrera'], perfil['semestre'], perfil['grupo'])
+    ).fetchall()
+
+    if not usfx:
+        db.close()
+        return jsonify({'error': 'No se encontraron materias para tu carrera/semestre/grupo'}), 404
+
+    # Obtener colores existentes del usuario para no perder configuración
+    existentes = {
+        r['materia_codigo']: dict(r) for r in db.execute(
+            'SELECT materia_codigo, dificultad, horas_semana, color FROM materias_estudiante WHERE usuario_id=?',
+            (uid,)
+        ).fetchall()
+    }
+
+    insertadas = 0
+    for i, row in enumerate(usfx):
+        codigo = row['materia_codigo']
+        nombre = row['materia_nombre'] or codigo
+        color  = COLORES_DEFAULT[i % len(COLORES_DEFAULT)]
+
+        if codigo in existentes:
+            # No sobreescribir configuración existente
+            continue
+
+        db.execute(
+            '''INSERT OR IGNORE INTO materias_estudiante
+               (usuario_id, materia_codigo, materia_nombre, dificultad, horas_semana, color)
+               VALUES (?, ?, ?, 3, 2, ?)''',
+            (uid, codigo, nombre, color)
+        )
+        insertadas += 1
+
+    db.commit()
+
+    # Retornar lista actualizada
+    rows = db.execute(
+        'SELECT * FROM materias_estudiante WHERE usuario_id=? ORDER BY materia_nombre',
+        (uid,)
+    ).fetchall()
+    db.close()
+    return jsonify({'insertadas': insertadas, 'materias': [dict(r) for r in rows]}), 200
+
+
+@materias_bp.route('/<int:mid>', methods=['PUT'])
+@require_auth
+def update_materia(mid):
+    uid = session['user']['id']
     data = request.get_json() or {}
 
-    nombre = data.get('nombre', '').strip()
-    dificultad = data.get('dificultad')
-    color = data.get('color', '#3182ce').strip() or '#3182ce'
-
-    if not nombre:
-        return jsonify({'error': 'El nombre es obligatorio'}), 400
-    if not isinstance(dificultad, int) or not (1 <= dificultad <= 5):
-        return jsonify({'error': 'La dificultad debe ser un número entre 1 y 5'}), 400
-
-    conn = get_db()
-    cur = conn.execute(
-        'INSERT INTO materias (nombre, dificultad, color, usuario_id) VALUES (?, ?, ?, ?)',
-        (nombre, dificultad, color, user['id'])
-    )
-    conn.commit()
-    row = conn.execute('SELECT * FROM materias WHERE id = ?', (cur.lastrowid,)).fetchone()
-    conn.close()
-    return jsonify(dict(row)), 201
-
-
-@materias_bp.route('/<int:id>', methods=['PUT'])
-@require_auth
-def update_materia(id):
-    user = session['user']
-    conn = get_db()
-    row = conn.execute('SELECT * FROM materias WHERE id = ?', (id,)).fetchone()
-
+    m = None
+    db = get_db()
+    row = db.execute(
+        'SELECT * FROM materias_estudiante WHERE id=? AND usuario_id=?', (mid, uid)
+    ).fetchone()
     if not row:
-        conn.close()
-        return jsonify({'error': 'Materia no encontrada'}), 404
-    if dict(row)['usuario_id'] != user['id']:
-        conn.close()
-        return jsonify({'error': 'Acceso denegado'}), 403
+        db.close()
+        return jsonify({'error': 'No encontrado'}), 404
 
-    data = request.get_json() or {}
-    m = dict(row)
-    nombre = data.get('nombre', m['nombre']).strip()
-    dificultad = data.get('dificultad', m['dificultad'])
-    color = data.get('color', m['color']).strip() or m['color']
+    dificultad  = data.get('dificultad', row['dificultad'])
+    horas_semana = data.get('horas_semana', row['horas_semana'])
+    color       = data.get('color', row['color'])
 
-    if not nombre:
-        conn.close()
-        return jsonify({'error': 'El nombre es obligatorio'}), 400
-    if not isinstance(dificultad, int) or not (1 <= dificultad <= 5):
-        conn.close()
-        return jsonify({'error': 'La dificultad debe ser entre 1 y 5'}), 400
+    try:
+        dificultad   = int(dificultad)
+        horas_semana = int(horas_semana)
+    except (ValueError, TypeError):
+        db.close()
+        return jsonify({'error': 'Valores inválidos'}), 400
 
-    conn.execute(
-        'UPDATE materias SET nombre=?, dificultad=?, color=? WHERE id=?',
-        (nombre, dificultad, color, id)
+    if not (1 <= dificultad <= 5):
+        db.close()
+        return jsonify({'error': 'dificultad debe ser 1-5'}), 400
+    if not (1 <= horas_semana <= 20):
+        db.close()
+        return jsonify({'error': 'horas_semana debe ser 1-20'}), 400
+
+    db.execute(
+        'UPDATE materias_estudiante SET dificultad=?, horas_semana=?, color=? WHERE id=?',
+        (dificultad, horas_semana, color, mid)
     )
-    conn.commit()
-    updated = conn.execute('SELECT * FROM materias WHERE id = ?', (id,)).fetchone()
-    conn.close()
-    return jsonify(dict(updated))
+    db.commit()
+    updated = db.execute('SELECT * FROM materias_estudiante WHERE id=?', (mid,)).fetchone()
+    db.close()
+    return jsonify(dict(updated)), 200
 
 
-@materias_bp.route('/<int:id>', methods=['DELETE'])
+@materias_bp.route('/<int:mid>', methods=['DELETE'])
 @require_auth
-def delete_materia(id):
-    user = session['user']
-    conn = get_db()
-    row = conn.execute('SELECT * FROM materias WHERE id = ?', (id,)).fetchone()
-
+def delete_materia(mid):
+    uid = session['user']['id']
+    db = get_db()
+    row = db.execute(
+        'SELECT id FROM materias_estudiante WHERE id=? AND usuario_id=?', (mid, uid)
+    ).fetchone()
     if not row:
-        conn.close()
-        return jsonify({'error': 'Materia no encontrada'}), 404
-    if dict(row)['usuario_id'] != user['id']:
-        conn.close()
-        return jsonify({'error': 'Acceso denegado'}), 403
+        db.close()
+        return jsonify({'error': 'No encontrado'}), 404
 
-    conn.execute('DELETE FROM materias WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Materia eliminada'})
+    db.execute('DELETE FROM materias_estudiante WHERE id=?', (mid,))
+    db.commit()
+    db.close()
+    return jsonify({'ok': True}), 200

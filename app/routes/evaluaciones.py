@@ -1,128 +1,111 @@
+from datetime import date
 from flask import Blueprint, request, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
-from datetime import date
 
 evaluaciones_bp = Blueprint('evaluaciones', __name__)
-
-TIPOS = ('examen', 'trabajo', 'practica', 'otro')
-
-EV_QUERY = '''
-    SELECT e.*, m.nombre AS materia_nombre, m.color AS materia_color
-    FROM evaluaciones e
-    LEFT JOIN materias m ON e.materia_id = m.id
-'''
 
 
 @evaluaciones_bp.route('', methods=['GET'])
 @require_auth
-def list_evaluaciones():
-    user = session['user']
-    conn = get_db()
-    rows = conn.execute(
-        EV_QUERY + ' WHERE e.usuario_id = ? ORDER BY e.fecha ASC',
-        (user['id'],)
+def get_evaluaciones():
+    uid = session['user']['id']
+    db = get_db()
+    rows = db.execute(
+        '''SELECT * FROM evaluaciones
+           WHERE usuario_id=? ORDER BY fecha ASC''',
+        (uid,)
     ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+    db.close()
+    return jsonify([dict(r) for r in rows]), 200
 
 
 @evaluaciones_bp.route('', methods=['POST'])
 @require_auth
 def create_evaluacion():
-    user = session['user']
+    uid = session['user']['id']
     data = request.get_json() or {}
 
-    titulo = data.get('titulo', '').strip()
-    materia_id = data.get('materia_id')
-    fecha = data.get('fecha', '').strip()
-    tipo = data.get('tipo', 'examen')
+    materia_codigo = (data.get('materia_codigo') or '').strip()
+    materia_nombre = (data.get('materia_nombre') or '').strip()
+    titulo         = (data.get('titulo') or '').strip()
+    fecha          = (data.get('fecha') or '').strip()
+    tipo           = (data.get('tipo') or 'examen').strip()
 
-    if not all([titulo, materia_id, fecha]):
-        return jsonify({'error': 'Título, materia y fecha son obligatorios'}), 400
-    if tipo not in TIPOS:
-        return jsonify({'error': f'Tipo inválido. Use: {", ".join(TIPOS)}'}), 400
+    if not all([materia_codigo, materia_nombre, titulo, fecha]):
+        return jsonify({'error': 'materia_codigo, materia_nombre, titulo y fecha son requeridos'}), 400
+    if tipo not in ('examen', 'trabajo', 'practica', 'otro'):
+        return jsonify({'error': 'tipo inválido'}), 400
     try:
         date.fromisoformat(fecha)
     except ValueError:
-        return jsonify({'error': 'Formato de fecha inválido (use YYYY-MM-DD)'}), 400
+        return jsonify({'error': 'fecha inválida (YYYY-MM-DD)'}), 400
 
-    conn = get_db()
-    materia = conn.execute(
-        'SELECT id FROM materias WHERE id = ? AND usuario_id = ?', (materia_id, user['id'])
-    ).fetchone()
-    if not materia:
-        conn.close()
-        return jsonify({'error': 'Materia no encontrada o no te pertenece'}), 404
-
-    cur = conn.execute(
-        'INSERT INTO evaluaciones (titulo, materia_id, usuario_id, fecha, tipo) VALUES (?, ?, ?, ?, ?)',
-        (titulo, materia_id, user['id'], fecha, tipo)
+    db = get_db()
+    cur = db.execute(
+        '''INSERT INTO evaluaciones (usuario_id, materia_codigo, materia_nombre, titulo, fecha, tipo)
+           VALUES (?,?,?,?,?,?)''',
+        (uid, materia_codigo, materia_nombre, titulo, fecha, tipo)
     )
-    conn.commit()
-    row = conn.execute(EV_QUERY + ' WHERE e.id = ?', (cur.lastrowid,)).fetchone()
-    conn.close()
+    db.commit()
+    row = db.execute('SELECT * FROM evaluaciones WHERE id=?', (cur.lastrowid,)).fetchone()
+    db.close()
     return jsonify(dict(row)), 201
 
 
-@evaluaciones_bp.route('/<int:id>', methods=['PUT'])
+@evaluaciones_bp.route('/<int:eid>', methods=['PUT'])
 @require_auth
-def update_evaluacion(id):
-    user = session['user']
-    conn = get_db()
-    ev = conn.execute('SELECT * FROM evaluaciones WHERE id = ?', (id,)).fetchone()
+def update_evaluacion(eid):
+    uid = session['user']['id']
+    db = get_db()
+    row = db.execute(
+        'SELECT * FROM evaluaciones WHERE id=? AND usuario_id=?', (eid, uid)
+    ).fetchone()
+    if not row:
+        db.close()
+        return jsonify({'error': 'No encontrado'}), 404
 
-    if not ev:
-        conn.close()
-        return jsonify({'error': 'Evaluación no encontrada'}), 404
-    if dict(ev)['usuario_id'] != user['id']:
-        conn.close()
-        return jsonify({'error': 'Acceso denegado'}), 403
+    data           = request.get_json() or {}
+    materia_codigo = (data.get('materia_codigo') or row['materia_codigo']).strip()
+    materia_nombre = (data.get('materia_nombre') or row['materia_nombre']).strip()
+    titulo         = (data.get('titulo') or row['titulo']).strip()
+    fecha          = (data.get('fecha') or row['fecha']).strip()
+    tipo           = (data.get('tipo') or row['tipo']).strip()
 
-    data = request.get_json() or {}
-    e = dict(ev)
-    titulo = data.get('titulo', e['titulo']).strip()
-    materia_id = data.get('materia_id', e['materia_id'])
-    fecha = data.get('fecha', e['fecha'])
-    tipo = data.get('tipo', e['tipo'])
-
-    if not titulo:
-        conn.close()
-        return jsonify({'error': 'El título es obligatorio'}), 400
-    if tipo not in TIPOS:
-        conn.close()
-        return jsonify({'error': 'Tipo inválido'}), 400
+    if tipo not in ('examen', 'trabajo', 'practica', 'otro'):
+        db.close()
+        return jsonify({'error': 'tipo inválido'}), 400
     try:
-        date.fromisoformat(str(fecha))
+        date.fromisoformat(fecha)
     except ValueError:
-        conn.close()
-        return jsonify({'error': 'Formato de fecha inválido'}), 400
+        db.close()
+        return jsonify({'error': 'fecha inválida (YYYY-MM-DD)'}), 400
 
-    conn.execute(
-        'UPDATE evaluaciones SET titulo=?, materia_id=?, fecha=?, tipo=? WHERE id=?',
-        (titulo, materia_id, fecha, tipo, id)
+    db.execute(
+        '''UPDATE evaluaciones
+           SET materia_codigo=?, materia_nombre=?, titulo=?, fecha=?, tipo=?
+           WHERE id=?''',
+        (materia_codigo, materia_nombre, titulo, fecha, tipo, eid)
     )
-    conn.commit()
-    row = conn.execute(EV_QUERY + ' WHERE e.id = ?', (id,)).fetchone()
-    conn.close()
-    return jsonify(dict(row))
+    db.commit()
+    updated = db.execute('SELECT * FROM evaluaciones WHERE id=?', (eid,)).fetchone()
+    db.close()
+    return jsonify(dict(updated)), 200
 
 
-@evaluaciones_bp.route('/<int:id>', methods=['DELETE'])
+@evaluaciones_bp.route('/<int:eid>', methods=['DELETE'])
 @require_auth
-def delete_evaluacion(id):
-    user = session['user']
-    conn = get_db()
-    ev = conn.execute('SELECT * FROM evaluaciones WHERE id = ?', (id,)).fetchone()
+def delete_evaluacion(eid):
+    uid = session['user']['id']
+    db = get_db()
+    row = db.execute(
+        'SELECT id FROM evaluaciones WHERE id=? AND usuario_id=?', (eid, uid)
+    ).fetchone()
+    if not row:
+        db.close()
+        return jsonify({'error': 'No encontrado'}), 404
 
-    if not ev:
-        conn.close()
-        return jsonify({'error': 'Evaluación no encontrada'}), 404
-    if dict(ev)['usuario_id'] != user['id']:
-        conn.close()
-        return jsonify({'error': 'Acceso denegado'}), 403
-
-    conn.execute('DELETE FROM evaluaciones WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Evaluación eliminada'})
+    db.execute('DELETE FROM evaluaciones WHERE id=?', (eid,))
+    db.commit()
+    db.close()
+    return jsonify({'ok': True}), 200

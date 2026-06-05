@@ -1,137 +1,205 @@
-let currentUser = null;
 let chart = null;
 
-const DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-const DIAS_LABELS = {
-  lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles',
-  jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', domingo: 'Domingo'
-};
+const DIAS       = ['lunes','martes','miercoles','jueves','viernes','sabado'];
+const DIAS_LABEL = { lunes:'Lunes', martes:'Martes', miercoles:'Miércoles',
+                     jueves:'Jueves', viernes:'Viernes', sabado:'Sábado' };
 
-async function init() {
-  currentUser = await requireSession();
-  if (!currentUser) return;
-  setUserChip(currentUser);
-  await checkPrerequisites();
-  await loadHorario();
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireSession();
+  if (!user) return;
+  setUserChip(user);
+
+  await checkPerfil();
+  await cargarHorario();
+
+  document.getElementById('btn-generar').addEventListener('click', generarHorario);
+});
+
+async function checkPerfil() {
+  const msgBox = document.getElementById('msg-prereq');
+  try {
+    const res = await api.get('/perfil');
+    if (!res.perfil) {
+      msgBox.innerHTML = `
+        <div class="alert alert-warning">
+          Primero configura tu perfil académico para que el sistema conozca tu carrera y semestre.
+          <br><a href="/perfil/index.html" class="btn btn-primary btn-sm" style="margin-top:.5rem">
+            Ir a Perfil Académico
+          </a>
+        </div>`;
+      document.getElementById('btn-generar').disabled = true;
+      return;
+    }
+    // Verificar materias
+    const mats = await api.get('/materias');
+    if (!mats.length) {
+      msgBox.innerHTML = `
+        <div class="alert alert-warning">
+          No tienes materias registradas. Sincroniza desde tu perfil académico.
+          <br><a href="/perfil/index.html" class="btn btn-primary btn-sm" style="margin-top:.5rem">
+            Ir a Perfil
+          </a>
+        </div>`;
+      document.getElementById('btn-generar').disabled = true;
+      return;
+    }
+    msgBox.innerHTML = `
+      <div class="alert alert-info">
+        Perfil: <strong>${escHtml(res.perfil.carrera)}</strong>
+        — Semestre ${escHtml(String(res.perfil.semestre))}
+        — Grupo ${escHtml(res.perfil.grupo)}
+        — ${mats.length} materias
+      </div>`;
+  } catch (_) {}
 }
 
-async function checkPrerequisites() {
+async function cargarHorario() {
   try {
-    const [materias, disp] = await Promise.all([api.get('/materias'), api.get('/disponibilidad')]);
-    const avisos = [];
-    if (!materias.length)
-      avisos.push('No tienes materias registradas. <a href="/materias/create.html">Agregar materias →</a>');
-    const totalH = DIAS.reduce((s, d) => s + (disp[d] || 0), 0);
-    if (totalH === 0)
-      avisos.push('No has configurado horas disponibles. <a href="/disponibilidad/index.html">Configurar →</a>');
-    const box = document.getElementById('prereq-box');
-    if (box && avisos.length)
-      box.innerHTML = avisos.map(a => `<div class="alert alert-info">${a}</div>`).join('');
-  } catch (_) { /* silent */ }
-}
-
-async function loadHorario() {
-  try {
-    const res = await api.get('/horarios');
-    if (res.horario && Object.values(res.horario).some(d => d.length)) {
-      renderHorario(res.horario);
+    const res = await api.get('/horario');
+    if (res.horario) {
+      mostrarFecha(res.generado_at);
+      renderGrid(res.horario);
+      renderResumen(res.horario.resumen);
       renderChart(res.horario);
-      const ts = document.getElementById('generated-at');
-      if (ts && res.generado_at) ts.textContent = 'Generado: ' + formatDate(res.generado_at);
     } else {
       document.getElementById('horario-container').innerHTML =
-        '<div class="empty-state"><div class="icon">📅</div><h3>Sin horario generado</h3>' +
-        '<p style="color:#64748b;margin-top:.5rem">Configura tus materias y disponibilidad, luego presiona <strong>Generar Horario</strong>.</p></div>';
+        '<p style="color:#64748b;text-align:center;padding:2rem">Aún no has generado tu horario. Presiona el botón de arriba.</p>';
     }
   } catch (err) {
-    document.getElementById('horario-container').innerHTML =
-      `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+    showAlert('#alert-global', err.message, 'error');
   }
-}
-
-function renderHorario(horario) {
-  const activeDays = DIAS.filter(d => (horario[d] || []).length > 0);
-  if (!activeDays.length) {
-    document.getElementById('horario-container').innerHTML =
-      '<div class="alert alert-info">El horario está vacío. Verifica tu disponibilidad y materias.</div>';
-    return;
-  }
-
-  let html = '<div class="horario-grid">';
-  activeDays.forEach(dia => {
-    const bloques = horario[dia] || [];
-    html += `<div class="dia-col">
-      <div class="dia-header">${DIAS_LABELS[dia]}</div>
-      ${bloques.map(b => `
-        <div class="bloque-materia" style="background:${escHtml(b.color)}22;border-left:4px solid ${escHtml(b.color)}">
-          <div class="bloque-nombre">${escHtml(b.materia)}</div>
-          <div class="bloque-horas">${b.horas}h ${'★'.repeat(b.dificultad)}</div>
-        </div>
-      `).join('')}
-    </div>`;
-  });
-  html += '</div>';
-  document.getElementById('horario-container').innerHTML = html;
-}
-
-function renderChart(horario) {
-  const totales = {};
-  DIAS.forEach(d => {
-    (horario[d] || []).forEach(b => {
-      if (!totales[b.materia]) totales[b.materia] = { horas: 0, color: b.color };
-      totales[b.materia].horas += b.horas;
-    });
-  });
-  const labels = Object.keys(totales);
-  if (!labels.length) return;
-
-  const ctx = document.getElementById('chart-horas');
-  if (!ctx) return;
-  if (chart) chart.destroy();
-
-  chart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Horas semanales',
-        data: labels.map(k => totales[k].horas),
-        backgroundColor: labels.map(k => totales[k].color + 'bb'),
-        borderColor: labels.map(k => totales[k].color),
-        borderWidth: 2,
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => `${c.parsed.y}h` } }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { callback: v => `${v}h` } }
-      }
-    }
-  });
 }
 
 async function generarHorario() {
   const btn = document.getElementById('btn-generar');
+  btn.textContent = 'Generando…';
   btn.disabled = true;
-  btn.textContent = 'Generando...';
   try {
-    const res = await api.post('/horarios/generar', {});
-    renderHorario(res.horario);
+    const res = await api.post('/horario/generar', {});
+    mostrarFecha(res.generado_at);
+    renderGrid(res.horario);
+    renderResumen(res.horario.resumen);
     renderChart(res.horario);
-    showAlert('#alert-global', res.message || 'Horario generado.', 'success');
-    const ts = document.getElementById('generated-at');
-    if (ts) ts.textContent = 'Generado: ahora';
+    showAlert('#alert-global', '✓ Horario generado correctamente', 'success');
   } catch (err) {
     showAlert('#alert-global', err.message, 'error');
   } finally {
+    btn.textContent = '🔄 Generar mi horario de estudio';
     btn.disabled = false;
-    btn.textContent = '⚡ Generar Horario';
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+function mostrarFecha(ts) {
+  const el = document.getElementById('generado-at');
+  if (el && ts) el.textContent = 'Generado: ' + new Date(ts).toLocaleString('es-BO');
+}
+
+// ── Tabla semanal ─────────────────────────────────────────────────────────────
+
+function renderGrid(horario) {
+  const container = document.getElementById('horario-container');
+  const horas = horario.dias['lunes']?.map(s => s.hora) || [];
+
+  let html = '<div class="horario-tabla-wrap"><table class="horario-tabla">';
+
+  // Encabezado
+  html += '<thead><tr><th class="hora-col">Hora</th>';
+  DIAS.forEach(d => { html += `<th>${escHtml(DIAS_LABEL[d])}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  // Filas de horas
+  horas.forEach(hora => {
+    html += `<tr><td class="hora-col">${escHtml(hora)}</td>`;
+    DIAS.forEach(dia => {
+      const slots = horario.dias[dia] || [];
+      const slot  = slots.find(s => s.hora === hora) || { tipo: 'libre' };
+      html += renderSlot(slot);
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+function renderSlot(slot) {
+  if (slot.tipo === 'clase') {
+    return `<td class="slot-clase" title="${escHtml(slot.nombre)} — ${escHtml(slot.aula)}">
+      <div class="slot-inner">
+        <strong>${escHtml(slot.codigo)}</strong>
+        <small>${escHtml(slot.aula)}</small>
+      </div>
+    </td>`;
+  }
+  if (slot.tipo === 'estudio') {
+    const bg = slot.color || '#3182ce';
+    const fg = lightColor(bg) ? '#1a202c' : '#fff';
+    return `<td class="slot-estudio" style="background:${bg};color:${fg}"
+                title="Estudiar: ${escHtml(slot.nombre)}">
+      <div class="slot-inner">
+        <small>${escHtml(slot.nombre)}</small>
+      </div>
+    </td>`;
+  }
+  return '<td class="slot-libre"></td>';
+}
+
+function lightColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+}
+
+// ── Resumen ───────────────────────────────────────────────────────────────────
+
+function renderResumen(resumen) {
+  const box = document.getElementById('resumen-box');
+  const items = Object.entries(resumen);
+  if (!items.length) { box.innerHTML = ''; return; }
+
+  box.innerHTML = `
+    <h3 style="margin-bottom:.75rem">Horas de estudio esta semana</h3>
+    ${items.map(([cod, info]) => `
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+        <span style="width:14px;height:14px;border-radius:3px;background:${escHtml(info.color)};
+                     display:inline-block;flex-shrink:0"></span>
+        <span style="flex:1;font-size:.9rem">${escHtml(info.nombre)}</span>
+        <strong>${info.horas_asignadas}h</strong>
+      </div>`).join('')}`;
+}
+
+// ── Chart.js ──────────────────────────────────────────────────────────────────
+
+function renderChart(horario) {
+  const canvas = document.getElementById('chart-horas');
+  if (!canvas) return;
+
+  const resumen = horario.resumen;
+  const labels  = Object.values(resumen).map(v => v.nombre);
+  const values  = Object.values(resumen).map(v => v.horas_asignadas);
+  const colors  = Object.values(resumen).map(v => v.color || '#3182ce');
+
+  if (chart) chart.destroy();
+  chart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Horas de estudio',
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        x: { ticks: { maxRotation: 30 } },
+      },
+    },
+  });
+}

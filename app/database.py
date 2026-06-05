@@ -1,5 +1,8 @@
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get('DB_PATH', 'smartschedule.db')
 
@@ -24,7 +27,7 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             image TEXT DEFAULT 'default.jpg',
-            rol TEXT CHECK(rol IN ('admin', 'ofertante', 'demandante')) DEFAULT 'demandante',
+            rol TEXT CHECK(rol IN ('admin','ofertante','demandante')) DEFAULT 'demandante',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -37,7 +40,7 @@ def init_db():
             description TEXT NOT NULL,
             price REAL NOT NULL,
             category TEXT NOT NULL,
-            status TEXT CHECK(status IN ('pendiente', 'aprobado', 'rechazado')) DEFAULT 'pendiente',
+            status TEXT CHECK(status IN ('pendiente','aprobado','rechazado')) DEFAULT 'pendiente',
             ofertante_id INTEGER NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -46,48 +49,66 @@ def init_db():
     ''')
 
     c.execute('''
-        CREATE TABLE IF NOT EXISTS materias (
+        CREATE TABLE IF NOT EXISTS horarios_usfx (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            dificultad INTEGER CHECK(dificultad BETWEEN 1 AND 5) NOT NULL,
-            color TEXT DEFAULT '#3182ce',
-            usuario_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            carrera TEXT NOT NULL,
+            semestre INTEGER NOT NULL,
+            grupo TEXT NOT NULL,
+            dia TEXT NOT NULL,
+            hora_inicio TEXT NOT NULL,
+            hora_fin TEXT NOT NULL,
+            materia_codigo TEXT NOT NULL,
+            materia_nombre TEXT,
+            aula TEXT
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS perfil_academico (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL UNIQUE,
+            carrera TEXT NOT NULL,
+            semestre INTEGER NOT NULL,
+            grupo TEXT NOT NULL,
             FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
         )
     ''')
 
     c.execute('''
-        CREATE TABLE IF NOT EXISTS disponibilidad (
+        CREATE TABLE IF NOT EXISTS materias_estudiante (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER NOT NULL UNIQUE,
-            lunes INTEGER DEFAULT 0,
-            martes INTEGER DEFAULT 0,
-            miercoles INTEGER DEFAULT 0,
-            jueves INTEGER DEFAULT 0,
-            viernes INTEGER DEFAULT 0,
-            sabado INTEGER DEFAULT 0,
-            domingo INTEGER DEFAULT 0,
-            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+            usuario_id INTEGER NOT NULL,
+            materia_codigo TEXT NOT NULL,
+            materia_nombre TEXT NOT NULL,
+            dificultad INTEGER CHECK(dificultad BETWEEN 1 AND 5) DEFAULT 3,
+            horas_semana INTEGER DEFAULT 2,
+            color TEXT DEFAULT '#3182ce',
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE(usuario_id, materia_codigo)
         )
     ''')
+
+    # Migrar evaluaciones si tiene esquema viejo (columna materia_id)
+    old_cols = [r[1] for r in c.execute("PRAGMA table_info(evaluaciones)").fetchall()]
+    if old_cols and 'materia_id' in old_cols:
+        c.execute("DROP TABLE evaluaciones")
+        logger.info("Tabla evaluaciones migrada al nuevo esquema")
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS evaluaciones (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT NOT NULL,
-            materia_id INTEGER NOT NULL,
             usuario_id INTEGER NOT NULL,
+            materia_codigo TEXT NOT NULL,
+            materia_nombre TEXT NOT NULL,
+            titulo TEXT NOT NULL,
             fecha DATE NOT NULL,
-            tipo TEXT CHECK(tipo IN ('examen', 'trabajo', 'practica', 'otro')) DEFAULT 'examen',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (materia_id) REFERENCES materias(id) ON DELETE CASCADE,
+            tipo TEXT CHECK(tipo IN ('examen','trabajo','practica','otro')) DEFAULT 'examen',
             FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
         )
     ''')
 
     c.execute('''
-        CREATE TABLE IF NOT EXISTS horarios (
+        CREATE TABLE IF NOT EXISTS horario_estudio (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             usuario_id INTEGER NOT NULL UNIQUE,
             horario_json TEXT NOT NULL,
@@ -96,12 +117,13 @@ def init_db():
         )
     ''')
 
+    # Seed inicial
     count = c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     if count == 0:
         seed_users = [
-            ('Jhonn Llanos Rojas', 'jhonn', 'jhonn@smartschedule.com', '123', 'admin'),
-            ('Camila Montecinos Solis', 'camila', 'camila@smartschedule.com', '123', 'ofertante'),
-            ('Erick Arancibia Flores', 'erick', 'erick@smartschedule.com', '123', 'demandante'),
+            ('Jhonn Llanos Rojas',       'jhonn',  'jhonn@smartschedule.com',  '123', 'admin'),
+            ('Camila Montecinos Solis',   'camila', 'camila@smartschedule.com', '123', 'ofertante'),
+            ('Erick Arancibia Flores',    'erick',  'erick@smartschedule.com',  '123', 'demandante'),
         ]
         c.executemany(
             'INSERT INTO users (name, username, email, password, rol) VALUES (?, ?, ?, ?, ?)',
@@ -110,3 +132,10 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+    # Cargar horarios USFX (solo si tabla vacía)
+    try:
+        from app.parser_horarios import parsear_y_cargar_horarios
+        parsear_y_cargar_horarios(DB_PATH)
+    except Exception as exc:
+        logger.warning("No se cargaron horarios USFX: %s", exc)

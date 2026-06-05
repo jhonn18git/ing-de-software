@@ -6,6 +6,6 @@ services:
     startCommand: python server.py
     envVars:
       - key: SESSION_SECRET
-        generateValue: true
+        value: smartschedule-secret-2026
       - key: PYTHON_VERSION
         value: 3.11.0

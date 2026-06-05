@@ -17,6 +17,12 @@
       <div class="nav-section">General</div>
       <a href="/panel.html" class="nav-link active"><span class="icon">🏠</span> Panel</a>
 
+      <div class="nav-section">Académico</div>
+      <a href="/perfil/index.html" class="nav-link"><span class="icon">👤</span> Mi Perfil Académico</a>
+      <a href="/materias/index.html" class="nav-link"><span class="icon">📚</span> Mis Materias</a>
+      <a href="/evaluaciones/index.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
+      <a href="/horario/index.html" class="nav-link nav-link-highlight"><span class="icon">📅</span> Mi Horario</a>
+
       <div class="nav-section" id="nav-admin-section" style="display:none">Admin</div>
       <a href="/usuarios/list.html" class="nav-link admin-only" id="nav-users" style="display:none">
         <span class="icon">👥</span> Usuarios
@@ -30,11 +36,6 @@
       <a href="/productos/create.html" class="nav-link ofertante-only" id="nav-create-product" style="display:none">
         <span class="icon">➕</span> Nuevo Producto
       </a>
-      <div class="nav-section">Mi Horario</div>
-      <a href="/horario/index.html" class="nav-link"><span class="icon">📅</span> Mi Horario</a>
-      <a href="/materias/list.html" class="nav-link"><span class="icon">📚</span> Materias</a>
-      <a href="/disponibilidad/index.html" class="nav-link"><span class="icon">🕐</span> Disponibilidad</a>
-      <a href="/evaluaciones/list.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-chip">
@@ -57,52 +58,38 @@
 
       <div class="stats-grid" id="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon blue">👤</div>
-          <div>
-            <div class="stat-number" id="stat-users">—</div>
-            <div class="stat-label">Usuarios</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon green">📦</div>
-          <div>
-            <div class="stat-number" id="stat-products">—</div>
-            <div class="stat-label">Productos</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon yellow">⏳</div>
-          <div>
-            <div class="stat-number" id="stat-pending">—</div>
-            <div class="stat-label">Pendientes</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon red">✅</div>
-          <div>
-            <div class="stat-number" id="stat-approved">—</div>
-            <div class="stat-label">Aprobados</div>
-          </div>
-        </div>
-        <div class="stat-card">
           <div class="stat-icon blue">📚</div>
           <div>
             <div class="stat-number" id="stat-materias">—</div>
-            <div class="stat-label">Materias</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon green">🕐</div>
-          <div>
-            <div class="stat-number" id="stat-horas">—</div>
-            <div class="stat-label">Horas/semana</div>
+            <div class="stat-label">Mis materias</div>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon yellow">📝</div>
           <div>
-            <div class="stat-number" id="stat-prox-eval" style="font-size:1rem">—</div>
-            <div class="stat-label">Próxima Eval.</div>
+            <div class="stat-number" id="stat-evals" style="font-size:1rem">—</div>
+            <div class="stat-label">Próxima eval.</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📅</div>
+          <div>
+            <div class="stat-number" id="stat-horas-estudio">—</div>
+            <div class="stat-label">Horas estudio/sem</div>
+          </div>
+        </div>
+        <div class="stat-card admin-stat" id="stat-card-users" style="display:none">
+          <div class="stat-icon blue">👥</div>
+          <div>
+            <div class="stat-number" id="stat-users">—</div>
+            <div class="stat-label">Usuarios</div>
+          </div>
+        </div>
+        <div class="stat-card admin-stat" id="stat-card-pending" style="display:none">
+          <div class="stat-icon red">⏳</div>
+          <div>
+            <div class="stat-number" id="stat-pending">—</div>
+            <div class="stat-label">Pendientes</div>
           </div>
         </div>
       </div>
@@ -131,54 +118,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('nav-admin-section').style.display = 'block';
     document.getElementById('nav-users').style.display = 'flex';
     document.getElementById('nav-pending').style.display = 'flex';
+    document.getElementById('stat-card-users').style.display = 'flex';
+    document.getElementById('stat-card-pending').style.display = 'flex';
   }
   if (user.rol === 'ofertante' || user.rol === 'admin') {
     document.getElementById('nav-create-product').style.display = 'flex';
   }
 
   document.getElementById('welcome-msg').innerHTML =
-    `Hola, <strong>${escHtml(user.name)}</strong>. Tienes el rol de <strong>${escHtml(user.rol)}</strong>.`;
+    `Hola, <strong>${escHtml(user.name)}</strong>. Rol: <strong>${escHtml(user.rol)}</strong>.`;
 
   const qas = document.getElementById('quick-actions');
+  qas.innerHTML = `<a href="/horario/index.html" class="btn btn-primary" style="margin-right:.5rem">
+    📅 Generar mi horario
+  </a>`;
   if (user.rol === 'admin') {
-    qas.innerHTML = `
-      <a href="/usuarios/list.html" class="btn btn-primary" style="margin-right:.5rem">Gestionar Usuarios</a>
+    qas.innerHTML += `
+      <a href="/usuarios/list.html" class="btn btn-secondary" style="margin-right:.5rem">Gestionar Usuarios</a>
       <a href="/productos/pendiente.html" class="btn btn-warning">Ver Pendientes</a>`;
   } else if (user.rol === 'ofertante') {
-    qas.innerHTML = `<a href="/productos/create.html" class="btn btn-success">Publicar Producto</a>`;
-  } else {
-    qas.innerHTML = `<a href="/productos/list.html" class="btn btn-primary">Ver Productos</a>`;
+    qas.innerHTML += `<a href="/productos/create.html" class="btn btn-success">Publicar Producto</a>`;
   }
 
-  try {
-    const products = await api.get('/productos');
-    document.getElementById('stat-products').textContent = products.length;
-    document.getElementById('stat-pending').textContent = products.filter(p => p.status === 'pendiente').length;
-    document.getElementById('stat-approved').textContent = products.filter(p => p.status === 'aprobado').length;
-
-    if (user.rol === 'admin') {
-      const users = await api.get('/usuarios');
-      document.getElementById('stat-users').textContent = users.length;
-    }
-  } catch (err) {
-    showAlert('#alert-global', 'No se pudieron cargar las estadísticas: ' + err.message, 'error');
-  }
-
+  // Stats académicas
   try {
     const materias = await api.get('/materias');
     document.getElementById('stat-materias').textContent = materias.length;
-  } catch (_) {}
-
-  try {
-    const disp = await api.get('/disponibilidad');
-    const DIAS = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
-    const total = DIAS.reduce((s, d) => s + (disp[d] || 0), 0);
-    document.getElementById('stat-horas').textContent = total + 'h';
+    const totalH = materias.reduce((s, m) => s + (m.horas_semana || 0), 0);
+    document.getElementById('stat-horas-estudio').textContent = totalH + 'h';
   } catch (_) {}
 
   try {
     const evals = await api.get('/evaluaciones');
-    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const proximas = evals
       .map(e => ({ ...e, _d: new Date(e.fecha + 'T00:00:00') }))
       .filter(e => e._d >= hoy)
@@ -186,13 +158,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (proximas.length) {
       const p = proximas[0];
       const diff = Math.round((p._d - hoy) / 86400000);
-      document.getElementById('stat-prox-eval').textContent =
-        diff === 0 ? 'Hoy' : diff === 1 ? 'Mañana' : 'en ' + diff + 'd';
-      document.getElementById('stat-prox-eval').title = escHtml(p.titulo);
+      document.getElementById('stat-evals').textContent =
+        diff === 0 ? '¡Hoy!' : diff === 1 ? 'Mañana' : 'en ' + diff + 'd';
     } else {
-      document.getElementById('stat-prox-eval').textContent = 'Ninguna';
+      document.getElementById('stat-evals').textContent = 'Ninguna';
     }
   } catch (_) {}
+
+  // Stats admin
+  if (user.rol === 'admin') {
+    try {
+      const users = await api.get('/usuarios');
+      document.getElementById('stat-users').textContent = users.length;
+    } catch (_) {}
+    try {
+      const pending = await api.get('/productos/pendientes');
+      document.getElementById('stat-pending').textContent = pending.length;
+    } catch (_) {}
+  }
 });
 </script>
 </body>

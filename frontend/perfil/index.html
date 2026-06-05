@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Mi Perfil Académico</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <div class="nav-section">Académico</div>
+      <a href="/perfil/index.html" class="nav-link active"><span class="icon">👤</span> Mi Perfil Académico</a>
+      <a href="/materias/index.html" class="nav-link"><span class="icon">📚</span> Mis Materias</a>
+      <a href="/evaluaciones/index.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
+      <a href="/horario/index.html" class="nav-link nav-link-highlight"><span class="icon">📅</span> Mi Horario</a>
+      <div class="nav-section">Admin</div>
+      <a href="/usuarios/list.html" class="nav-link"><span class="icon">👥</span> Usuarios</a>
+      <a href="/productos/pendiente.html" class="nav-link"><span class="icon">⏳</span> Pendientes</a>
+      <div class="nav-section">Productos</div>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
+      <a href="/productos/create.html" class="nav-link"><span class="icon">➕</span> Nuevo Producto</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Mi Perfil Académico</span>
+    </div>
+    <div class="page-content">
+      <div id="alert-box"></div>
+      <div id="perfil-actual"></div>
+
+      <div class="card" style="max-width:560px">
+        <h3 style="margin-bottom:1.25rem">Configura tu carrera y semestre</h3>
+        <p style="color:#64748b;margin-bottom:1.5rem;font-size:.95rem">
+          El sistema detectará automáticamente tus horas de clase y los ratos libres
+          para generar tu horario de estudio optimizado.
+        </p>
+
+        <div class="wizard-steps" style="margin-bottom:1.5rem">
+          <div class="wizard-step">
+            <div class="step-num">1</div>
+            <div class="step-label">Carrera</div>
+          </div>
+          <div class="wizard-step-line"></div>
+          <div class="wizard-step">
+            <div class="step-num">2</div>
+            <div class="step-label">Semestre</div>
+          </div>
+          <div class="wizard-step-line"></div>
+          <div class="wizard-step">
+            <div class="step-num">3</div>
+            <div class="step-label">Grupo</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Carrera</label>
+          <select id="sel-carrera">
+            <option value="">Cargando…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Semestre</label>
+          <select id="sel-semestre">
+            <option value="">— Selecciona carrera primero —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Grupo</label>
+          <select id="sel-grupo">
+            <option value="">— Selecciona semestre primero —</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap">
+          <button id="btn-guardar-perfil" class="btn btn-secondary">Guardar Perfil</button>
+          <button id="btn-sync" class="btn btn-primary" style="display:none">
+            📚 Cargar mis materias
+          </button>
+        </div>
+      </div>
+
+      <div id="preview-materias"></div>
+    </div>
+  </main>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/perfil.js"></script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSchedule — Evaluaciones</title>
+  <link rel="stylesheet" href="/css/estilos.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header"><h2>📅 SmartSchedule</h2><span>Grupo 3 — USFX</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">General</div>
+      <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+      <div class="nav-section">Académico</div>
+      <a href="/perfil/index.html" class="nav-link"><span class="icon">👤</span> Mi Perfil Académico</a>
+      <a href="/materias/index.html" class="nav-link"><span class="icon">📚</span> Mis Materias</a>
+      <a href="/evaluaciones/index.html" class="nav-link active"><span class="icon">📝</span> Evaluaciones</a>
+      <a href="/horario/index.html" class="nav-link nav-link-highlight"><span class="icon">📅</span> Mi Horario</a>
+      <div class="nav-section">Admin</div>
+      <a href="/usuarios/list.html" class="nav-link"><span class="icon">👥</span> Usuarios</a>
+      <a href="/productos/pendiente.html" class="nav-link"><span class="icon">⏳</span> Pendientes</a>
+      <div class="nav-section">Productos</div>
+      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
+      <a href="/productos/create.html" class="nav-link"><span class="icon">➕</span> Nuevo Producto</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><strong id="user-name">...</strong><small id="user-role"></small></div>
+      </div>
+      <button onclick="logout()" class="btn btn-secondary btn-full btn-sm">Cerrar Sesión</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <span class="topbar-title">Evaluaciones</span>
+    </div>
+    <div class="page-content">
+      <div id="alert-global"></div>
+
+      <!-- Formulario -->
+      <div class="card" style="max-width:600px;margin-bottom:1.5rem">
+        <h3 id="form-titulo" style="margin-bottom:1rem">Agregar Evaluación</h3>
+        <div id="alert-form"></div>
+        <form id="form-eval" novalidate>
+          <div class="form-group">
+            <label>Materia</label>
+            <select id="sel-materia" required>
+              <option value="">Cargando materias…</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+              <label>Título / descripción</label>
+              <input type="text" id="ev-titulo" placeholder="Ej: Examen parcial 1" required>
+            </div>
+            <div class="form-group">
+              <label>Fecha</label>
+              <input type="date" id="fecha" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="tipo">
+              <option value="examen">Examen</option>
+              <option value="trabajo">Trabajo</option>
+              <option value="practica">Práctica</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:.75rem;margin-top:.5rem">
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <button type="button" id="btn-cancelar" class="btn btn-secondary"
+                    style="display:none">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lista -->
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Materia</th>
+                <th>Título</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Restante</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="eval-tbody">
+              <tr><td colspan="6" class="loading">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/evaluaciones.js"></script>
+</body>
+</html>

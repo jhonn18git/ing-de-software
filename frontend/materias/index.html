@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartSchedule — Usuarios</title>
+  <title>SmartSchedule — Mis Materias</title>
   <link rel="stylesheet" href="/css/estilos.css">
 </head>
 <body>
@@ -15,11 +15,11 @@
       <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
       <div class="nav-section">Académico</div>
       <a href="/perfil/index.html" class="nav-link"><span class="icon">👤</span> Mi Perfil Académico</a>
-      <a href="/materias/index.html" class="nav-link"><span class="icon">📚</span> Mis Materias</a>
+      <a href="/materias/index.html" class="nav-link active"><span class="icon">📚</span> Mis Materias</a>
       <a href="/evaluaciones/index.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
       <a href="/horario/index.html" class="nav-link nav-link-highlight"><span class="icon">📅</span> Mi Horario</a>
       <div class="nav-section">Admin</div>
-      <a href="/usuarios/list.html" class="nav-link active"><span class="icon">👥</span> Usuarios</a>
+      <a href="/usuarios/list.html" class="nav-link"><span class="icon">👥</span> Usuarios</a>
       <a href="/productos/pendiente.html" class="nav-link"><span class="icon">⏳</span> Pendientes</a>
       <div class="nav-section">Productos</div>
       <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
@@ -36,26 +36,30 @@
 
   <main class="main-content">
     <div class="topbar">
-      <span class="topbar-title">Gestión de Usuarios</span>
-      <a href="/usuarios/create.html" class="btn btn-primary btn-sm">+ Nuevo Usuario</a>
+      <span class="topbar-title">Mis Materias</span>
+      <button id="btn-sync" class="btn btn-secondary btn-sm">🔄 Re-sincronizar</button>
     </div>
     <div class="page-content">
       <div id="alert-global"></div>
-      <div class="card" id="content">
+      <div class="card">
+        <p style="color:#64748b;margin-bottom:1rem;font-size:.9rem">
+          Ajusta la dificultad y las horas de estudio semanal para cada materia.
+          Estos valores se usan para generar tu horario optimizado.
+        </p>
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Usuario</th>
-                <th>Email</th>
-                <th>Rol</th>
-                <th>Creado</th>
+                <th>Código</th>
+                <th>Materia</th>
+                <th>Dificultad</th>
+                <th>Horas/semana</th>
+                <th>Color</th>
                 <th>Acciones</th>
               </tr>
             </thead>
-            <tbody id="users-tbody">
-              <tr><td colspan="6" class="loading">Cargando...</td></tr>
+            <tbody id="materias-tbody">
+              <tr><td colspan="6" class="loading">Cargando…</td></tr>
             </tbody>
           </table>
         </div>
@@ -65,6 +69,6 @@
 </div>
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/usuarios.js"></script>
+<script src="/js/materias.js"></script>
 </body>
 </html>

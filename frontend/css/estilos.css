@@ -563,6 +563,101 @@ tr:hover td { background: #f8fafc; }
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 
+/* ── Nav highlight (Mi Horario) ──────────────────────────────────────── */
+.nav-link-highlight {
+  color: #fbbf24 !important;
+  font-weight: 600;
+}
+.nav-link-highlight:hover, .nav-link-highlight.active {
+  background: rgba(251,191,36,.15) !important;
+}
+
+/* ── Wizard steps (perfil) ───────────────────────────────────────────── */
+.wizard-steps {
+  display: flex; align-items: center; gap: 0;
+}
+.wizard-step {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+}
+.step-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .9rem;
+}
+.step-label { font-size: .8rem; color: #64748b; }
+.wizard-step-line {
+  flex: 1; height: 2px; background: #e2e8f0; margin: 0 .5rem; margin-bottom: 1.2rem;
+}
+
+/* ── Stars editable (materias/index) ────────────────────────────────── */
+.star-btn {
+  cursor: pointer; font-size: 1.3rem; color: #cbd5e0;
+  transition: color .15s, transform .15s; line-height: 1;
+}
+.star-btn:hover, .star-btn.active { color: #f6ad55; }
+.star-btn:hover { transform: scale(1.15); }
+.stars-edit { display: flex; gap: .1rem; }
+
+/* ── Color preview dot (materias) ───────────────────────────────────── */
+.color-preview {
+  display: inline-block; width: 22px; height: 22px;
+  border-radius: 4px; vertical-align: middle;
+  margin-left: 6px; border: 1px solid #e2e8f0;
+}
+
+/* ── input-sm ────────────────────────────────────────────────────────── */
+.input-sm {
+  padding: .3rem .5rem; font-size: .9rem; border: 1px solid #e2e8f0;
+  border-radius: 6px; width: 60px;
+}
+.input-sm:focus { outline: none; border-color: var(--primary); }
+
+/* ── Leyenda del horario ─────────────────────────────────────────────── */
+.leyenda { font-size: .9rem; color: #475569; }
+.leyenda-chip {
+  display: inline-block; width: 14px; height: 14px;
+  border-radius: 3px; vertical-align: middle; margin-right: 4px;
+}
+.leyenda-clase   { background: #7f9cf5; }
+.leyenda-estudio { background: #48bb78; }
+.leyenda-libre   { background: #e2e8f0; border: 1px solid #cbd5e0; }
+
+/* ── Tabla semanal del horario ───────────────────────────────────────── */
+.horario-tabla-wrap { overflow-x: auto; }
+.horario-tabla {
+  width: 100%; border-collapse: collapse;
+  font-size: .82rem; min-width: 680px;
+}
+.horario-tabla th, .horario-tabla td {
+  border: 1px solid #e2e8f0; text-align: center;
+  padding: 0; height: 38px; min-width: 90px;
+}
+.horario-tabla th {
+  background: #f8fafc; font-weight: 600; color: #374151;
+  position: sticky; top: 0; z-index: 1;
+}
+.hora-col {
+  width: 58px; font-size: .78rem; color: #94a3b8;
+  background: #f8fafc !important; font-weight: 500;
+}
+.slot-inner {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; padding: 2px 4px;
+  line-height: 1.2;
+}
+.slot-clase {
+  background: #ebf4ff; color: #2c5282; cursor: default;
+  vertical-align: middle;
+}
+.slot-clase strong { font-size: .78rem; }
+.slot-clase small  { font-size: .72rem; color: #4a5568; }
+.slot-estudio {
+  cursor: default; vertical-align: middle;
+}
+.slot-estudio small { font-size: .75rem; font-weight: 500; }
+.slot-libre { background: #f8fafc; }
+
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-250px); }
   .sidebar.open { transform: translateX(0); }

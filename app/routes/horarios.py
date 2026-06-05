@@ -1,88 +1,89 @@
 import json
-from datetime import date
 from flask import Blueprint, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
 from app.algoritmo import generar_horario
 
-horarios_bp = Blueprint('horarios', __name__)
-
-DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+horario_bp = Blueprint('horario', __name__)
 
 
-@horarios_bp.route('/generar', methods=['POST'])
-@require_auth
-def generar():
-    user = session['user']
-    conn = get_db()
-
-    materias = [dict(r) for r in conn.execute(
-        'SELECT * FROM materias WHERE usuario_id = ?', (user['id'],)
-    ).fetchall()]
-
-    if not materias:
-        conn.close()
-        return jsonify({'error': 'No tienes materias registradas. Agrega materias primero.'}), 400
-
-    disp_row = conn.execute(
-        'SELECT * FROM disponibilidad WHERE usuario_id = ?', (user['id'],)
-    ).fetchone()
-
-    if not disp_row:
-        conn.close()
-        return jsonify({'error': 'No has configurado tu disponibilidad. Configúrala primero.'}), 400
-
-    disp = dict(disp_row)
-    if sum(disp.get(d, 0) for d in DIAS) == 0:
-        conn.close()
-        return jsonify({'error': 'Tu disponibilidad semanal es 0 horas.'}), 400
-
-    hoy = date.today().isoformat()
-    ev_rows = conn.execute(
-        'SELECT materia_id, fecha FROM evaluaciones WHERE usuario_id = ? AND fecha >= ? ORDER BY fecha',
-        (user['id'], hoy)
-    ).fetchall()
-
-    evaluaciones = [
-        {'materia_id': r['materia_id'], 'fecha': date.fromisoformat(r['fecha'])}
-        for r in ev_rows
-    ]
-
-    horario = generar_horario(materias, disp, evaluaciones)
-    horario_json = json.dumps(horario, ensure_ascii=False)
-
-    existe = conn.execute(
-        'SELECT id FROM horarios WHERE usuario_id = ?', (user['id'],)
-    ).fetchone()
-
-    if existe:
-        conn.execute(
-            'UPDATE horarios SET horario_json=?, generado_at=CURRENT_TIMESTAMP WHERE usuario_id=?',
-            (horario_json, user['id'])
-        )
-    else:
-        conn.execute(
-            'INSERT INTO horarios (usuario_id, horario_json) VALUES (?, ?)',
-            (user['id'], horario_json)
-        )
-
-    conn.commit()
-    conn.close()
-    return jsonify({'horario': horario, 'message': 'Horario generado correctamente'})
-
-
-@horarios_bp.route('', methods=['GET'])
+@horario_bp.route('', methods=['GET'])
 @require_auth
 def get_horario():
-    user = session['user']
-    conn = get_db()
-    row = conn.execute(
-        'SELECT * FROM horarios WHERE usuario_id = ?', (user['id'],)
+    uid = session['user']['id']
+    db = get_db()
+    row = db.execute(
+        'SELECT horario_json, generado_at FROM horario_estudio WHERE usuario_id=?',
+        (uid,)
     ).fetchone()
-    conn.close()
-
+    db.close()
     if not row:
-        return jsonify({'horario': None, 'generado_at': None})
+        return jsonify({'horario': None}), 200
+    return jsonify({
+        'horario':     json.loads(row['horario_json']),
+        'generado_at': row['generado_at'],
+    }), 200
 
-    h = dict(row)
-    return jsonify({'horario': json.loads(h['horario_json']), 'generado_at': h['generado_at']})
+
+@horario_bp.route('/generar', methods=['POST'])
+@require_auth
+def generar():
+    uid = session['user']['id']
+    db = get_db()
+
+    # Verificar que tiene materias
+    count = db.execute(
+        'SELECT COUNT(*) FROM materias_estudiante WHERE usuario_id=?', (uid,)
+    ).fetchone()[0]
+    if count == 0:
+        db.close()
+        return jsonify({'error': 'No tienes materias registradas. Sincroniza desde tu perfil.'}), 400
+
+    horario = generar_horario(uid, db)
+    horario_str = json.dumps(horario, ensure_ascii=False)
+
+    existing = db.execute(
+        'SELECT id FROM horario_estudio WHERE usuario_id=?', (uid,)
+    ).fetchone()
+    if existing:
+        db.execute(
+            'UPDATE horario_estudio SET horario_json=?, generado_at=CURRENT_TIMESTAMP WHERE usuario_id=?',
+            (horario_str, uid)
+        )
+    else:
+        db.execute(
+            'INSERT INTO horario_estudio (usuario_id, horario_json) VALUES (?,?)',
+            (uid, horario_str)
+        )
+    db.commit()
+
+    row = db.execute(
+        'SELECT generado_at FROM horario_estudio WHERE usuario_id=?', (uid,)
+    ).fetchone()
+    db.close()
+    return jsonify({'horario': horario, 'generado_at': row['generado_at']}), 200
+
+
+@horario_bp.route('/clases', methods=['GET'])
+@require_auth
+def get_clases():
+    """Devuelve las clases USFX del usuario según su perfil académico."""
+    uid = session['user']['id']
+    db = get_db()
+    perfil = db.execute(
+        'SELECT carrera, semestre, grupo FROM perfil_academico WHERE usuario_id=?',
+        (uid,)
+    ).fetchone()
+    if not perfil:
+        db.close()
+        return jsonify({'clases': [], 'perfil': None}), 200
+
+    rows = db.execute(
+        '''SELECT dia, hora_inicio, hora_fin, materia_codigo, materia_nombre, aula
+           FROM horarios_usfx
+           WHERE carrera=? AND semestre=? AND grupo=?
+           ORDER BY dia, hora_inicio''',
+        (perfil['carrera'], perfil['semestre'], perfil['grupo'])
+    ).fetchall()
+    db.close()
+    return jsonify({'clases': [dict(r) for r in rows], 'perfil': dict(perfil)}), 200
