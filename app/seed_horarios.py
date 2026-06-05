@@ -564,14 +564,13 @@ HORARIOS_USFX = [
 def seed_horarios(conn):
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) FROM horarios_usfx")
-    if cur.fetchone()[0] > 0:
+    count = cur.fetchone()[0]
+    if count > 0:
+        print(f"Seed horarios: ya existen {count} registros, omitiendo")
         return
     cur.executemany("""
-        INSERT INTO horarios_usfx
-               (carrera, semestre, grupo, dia, hora_inicio, hora_fin,
-                materia_codigo, materia_nombre, aula)
-        VALUES (:carrera, :semestre, :grupo, :dia, :hora_inicio, :hora_fin,
-                :materia_codigo, :materia_nombre, :aula)
+        INSERT INTO horarios_usfx (carrera, semestre, grupo, dia, hora_inicio, hora_fin, materia_codigo, materia_nombre, aula)
+        VALUES (:carrera, :semestre, :grupo, :dia, :hora_inicio, :hora_fin, :materia_codigo, :materia_nombre, :aula)
     """, HORARIOS_USFX)
     conn.commit()
-    print(f"Seed: {len(HORARIOS_USFX)} registros de horarios USFX insertados")
+    print(f"Seed horarios: {len(HORARIOS_USFX)} registros insertados")

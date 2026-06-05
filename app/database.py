@@ -19,6 +19,13 @@ def init_db():
     conn = get_db()
     c = conn.cursor()
 
+    # TEMP: forzar recreación de horarios
+    try:
+        conn.execute("DELETE FROM horarios_usfx")
+        conn.commit()
+    except Exception:
+        pass
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,14 +138,8 @@ def init_db():
         )
 
     conn.commit()
-    conn.close()
 
-    # Cargar horarios USFX desde seed hardcodeado
-    conn2 = get_db()
-    try:
-        from app.seed_horarios import seed_horarios
-        seed_horarios(conn2)
-    except Exception as exc:
-        logger.warning("No se cargaron horarios USFX: %s", exc)
-    finally:
-        conn2.close()
+    from app.seed_horarios import seed_horarios
+    seed_horarios(conn)
+
+    conn.close()
