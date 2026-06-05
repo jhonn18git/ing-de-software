@@ -1,6 +1,5 @@
-# Varias carreras de la USFX comparten horarios con Ingeniería de Sistemas.
-# Las planillas de semestres 1-4 (y algunos superiores) de CIC, TIS, TEL y
-# Ciberseguridad están registradas bajo "Ingeniería de Sistemas" en la DB.
+# CIC, TEL, TIS comparten horarios con SIS para semestre 1 (sem 1 en DB = SIS).
+# CIB semestre 1 tiene datos propios; semestres 2+ usan el currículo de TIS.
 CARRERAS_RELACIONADAS = {
     'Ingeniería en Ciencias de la Computación': [
         'Ingeniería de Sistemas',
@@ -21,8 +20,9 @@ CARRERAS_RELACIONADAS = {
         'Ingeniería en Diseño y Animación Digital',
     ],
     'Ingeniería en Ciberseguridad': [
-        'Ingeniería de Sistemas',
         'Ingeniería en Ciberseguridad',
+        'Ingeniería en Tecnologías de la Información y Seguridad',
+        'Ingeniería de Sistemas',
     ],
 }
 
