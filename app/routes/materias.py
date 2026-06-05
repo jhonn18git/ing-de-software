@@ -58,7 +58,13 @@ def sync_materias():
 
     if not usfx:
         db.close()
-        return jsonify({'error': 'No se encontraron materias para tu carrera/semestre/grupo'}), 404
+        return jsonify({
+            'error': (
+                f"Sin materias en horarios_usfx para: carrera='{perfil['carrera']}' "
+                f"semestre={perfil['semestre']} grupo='{perfil['grupo']}'. "
+                f"Total filas en DB: {total_usfx}"
+            )
+        }), 400
 
     # Obtener colores existentes del usuario para no perder configuración
     existentes = {
