@@ -55,16 +55,31 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
         return []
 
     # --- Cargar secciones disponibles por materia, deduplicando bloques ------
+    # Estrategia: priorizar la carrera propia del estudiante. Solo usar el
+    # fallback multi-carrera si la materia no tiene secciones en su carrera propia.
+    # Esto evita contaminacion cuando dos carreras comparten codigos de seccion
+    # (p.ej. CIC y SIS ambas tienen GL1 para SIS420 pero en horarios distintos).
     materias_secciones: dict[str, dict] = {}
 
     for codigo in codigos:
+        # Primero: solo carrera propia
         rows = db.execute(
-            f'''SELECT materia_nombre, seccion, profesor, dia, hora_inicio, hora_fin, aula
-                FROM horarios_usfx
-                WHERE carrera IN ({placeholders}) AND semestre=? AND materia_codigo=?
-                ORDER BY seccion, dia, hora_inicio''',
-            (*carreras_buscar, semestre, codigo)
+            '''SELECT materia_nombre, seccion, profesor, dia, hora_inicio, hora_fin, aula
+               FROM horarios_usfx
+               WHERE carrera=? AND semestre=? AND materia_codigo=?
+               ORDER BY seccion, dia, hora_inicio''',
+            (carrera, semestre, codigo)
         ).fetchall()
+
+        # Fallback: todas las carreras relacionadas si no hay datos propios
+        if not rows:
+            rows = db.execute(
+                f'''SELECT materia_nombre, seccion, profesor, dia, hora_inicio, hora_fin, aula
+                    FROM horarios_usfx
+                    WHERE carrera IN ({placeholders}) AND semestre=? AND materia_codigo=?
+                    ORDER BY seccion, dia, hora_inicio''',
+                (*carreras_buscar, semestre, codigo)
+            ).fetchall()
 
         secciones: dict[str, dict] = {}
         for r in rows:

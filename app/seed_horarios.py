@@ -2461,6 +2461,8 @@ HORARIOS_USFX = [
     {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'miercoles', "hora_inicio": '08:00', "hora_fin": '09:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GT1'},
     {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'jueves', "hora_inicio": '09:00', "hora_fin": '10:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL1'},
     {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'jueves', "hora_inicio": '10:00', "hora_fin": '11:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL1'},
+    {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'sabado', "hora_inicio": '07:00', "hora_fin": '08:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL3'},
+    {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'sabado', "hora_inicio": '08:00', "hora_fin": '09:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL3'},
     {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'jueves', "hora_inicio": '14:00', "hora_fin": '15:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL6'},
     {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'jueves', "hora_inicio": '15:00', "hora_fin": '16:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL6'},
     {"carrera": 'Ingeniería en Ciencias de la Computación', "semestre": 5, "grupo": 'C', "dia": 'martes', "hora_inicio": '16:00', "hora_fin": '17:00', "materia_codigo": 'SIS252', "materia_nombre": '', "aula": 'GL7'},

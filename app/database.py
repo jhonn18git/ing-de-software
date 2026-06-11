@@ -185,6 +185,10 @@ def init_db():
 
     conn.commit()
 
+    # TEMP: forzar recarga completa del seed (2026-06-10) — eliminar tras validar en prod
+    conn.execute("DELETE FROM horarios_usfx")
+    conn.commit()
+
     from app.seed_horarios import seed_horarios
     seed_horarios(conn)
 
