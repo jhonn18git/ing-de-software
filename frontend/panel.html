@@ -27,15 +27,6 @@
       <a href="/usuarios/list.html" class="nav-link admin-only" id="nav-users" style="display:none">
         <span class="icon">👥</span> Usuarios
       </a>
-      <a href="/productos/pendiente.html" class="nav-link admin-only" id="nav-pending" style="display:none">
-        <span class="icon">⏳</span> Pendientes
-      </a>
-
-      <div class="nav-section">Productos</div>
-      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
-      <a href="/productos/create.html" class="nav-link ofertante-only" id="nav-create-product" style="display:none">
-        <span class="icon">➕</span> Nuevo Producto
-      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-chip">
@@ -72,7 +63,7 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon green">📅</div>
+          <div class="stat-icon green">⏱️</div>
           <div>
             <div class="stat-number" id="stat-horas-estudio">—</div>
             <div class="stat-label">Horas estudio/sem</div>
@@ -85,20 +76,13 @@
             <div class="stat-label">Usuarios</div>
           </div>
         </div>
-        <div class="stat-card admin-stat" id="stat-card-pending" style="display:none">
-          <div class="stat-icon red">⏳</div>
-          <div>
-            <div class="stat-number" id="stat-pending">—</div>
-            <div class="stat-label">Pendientes</div>
-          </div>
-        </div>
       </div>
 
       <div class="card">
         <div class="card-header">
           <h2>Bienvenido/a a SmartSchedule</h2>
         </div>
-        <p id="welcome-msg" style="color:#64748b">Cargando tu información...</p>
+        <p id="welcome-msg" style="color:var(--text-secondary)">Cargando tu información...</p>
         <div style="margin-top:1rem" id="quick-actions"></div>
       </div>
     </div>
@@ -115,14 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setUserChip(user);
 
   if (user.rol === 'admin') {
-    document.getElementById('nav-admin-section').style.display = 'block';
-    document.getElementById('nav-users').style.display = 'flex';
-    document.getElementById('nav-pending').style.display = 'flex';
     document.getElementById('stat-card-users').style.display = 'flex';
-    document.getElementById('stat-card-pending').style.display = 'flex';
-  }
-  if (user.rol === 'ofertante' || user.rol === 'admin') {
-    document.getElementById('nav-create-product').style.display = 'flex';
   }
 
   document.getElementById('welcome-msg').innerHTML =
@@ -133,14 +110,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     📅 Generar mi horario
   </a>`;
   if (user.rol === 'admin') {
-    qas.innerHTML += `
-      <a href="/usuarios/list.html" class="btn btn-secondary" style="margin-right:.5rem">Gestionar Usuarios</a>
-      <a href="/productos/pendiente.html" class="btn btn-warning">Ver Pendientes</a>`;
-  } else if (user.rol === 'ofertante') {
-    qas.innerHTML += `<a href="/productos/create.html" class="btn btn-success">Publicar Producto</a>`;
+    qas.innerHTML += `<a href="/usuarios/list.html" class="btn btn-secondary">Gestionar Usuarios</a>`;
   }
 
-  // Stats académicas
   try {
     const materias = await api.get('/materias');
     document.getElementById('stat-materias').textContent = materias.length;
@@ -165,15 +137,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (_) {}
 
-  // Stats admin
   if (user.rol === 'admin') {
     try {
       const users = await api.get('/usuarios');
       document.getElementById('stat-users').textContent = users.length;
-    } catch (_) {}
-    try {
-      const pending = await api.get('/productos/pendientes');
-      document.getElementById('stat-pending').textContent = pending.length;
     } catch (_) {}
   }
 });

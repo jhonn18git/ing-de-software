@@ -42,21 +42,6 @@ def init_db():
     ''')
 
     c.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT NOT NULL,
-            price REAL NOT NULL,
-            category TEXT NOT NULL,
-            status TEXT CHECK(status IN ('pendiente','aprobado','rechazado')) DEFAULT 'pendiente',
-            ofertante_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (ofertante_id) REFERENCES users(id) ON DELETE CASCADE
-        )
-    ''')
-
-    c.execute('''
         CREATE TABLE IF NOT EXISTS horarios_usfx (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             carrera TEXT NOT NULL,

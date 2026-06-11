@@ -88,4 +88,11 @@ function setUserChip(user) {
   if (nameEl) nameEl.textContent = user.name;
   if (roleEl) roleEl.textContent = user.rol;
   if (avatarEl) avatarEl.textContent = user.name.charAt(0).toUpperCase();
+
+  if (user.rol === 'admin') {
+    const adminSection = document.getElementById('nav-admin-section');
+    const adminUsers   = document.getElementById('nav-users');
+    if (adminSection) adminSection.style.display = 'block';
+    if (adminUsers)   adminUsers.style.display   = 'flex';
+  }
 }

@@ -13,17 +13,17 @@
     <nav class="sidebar-nav">
       <div class="nav-section">General</div>
       <a href="/panel.html" class="nav-link"><span class="icon">🏠</span> Panel</a>
+
       <div class="nav-section">Académico</div>
       <a href="/perfil/index.html" class="nav-link"><span class="icon">👤</span> Mi Perfil Académico</a>
       <a href="/materias/index.html" class="nav-link active"><span class="icon">📚</span> Mis Materias</a>
       <a href="/evaluaciones/index.html" class="nav-link"><span class="icon">📝</span> Evaluaciones</a>
       <a href="/horario/index.html" class="nav-link nav-link-highlight"><span class="icon">📅</span> Mi Horario</a>
-      <div class="nav-section">Admin</div>
-      <a href="/usuarios/list.html" class="nav-link"><span class="icon">👥</span> Usuarios</a>
-      <a href="/productos/pendiente.html" class="nav-link"><span class="icon">⏳</span> Pendientes</a>
-      <div class="nav-section">Productos</div>
-      <a href="/productos/list.html" class="nav-link"><span class="icon">📦</span> Ver Productos</a>
-      <a href="/productos/create.html" class="nav-link"><span class="icon">➕</span> Nuevo Producto</a>
+
+      <div class="nav-section" id="nav-admin-section" style="display:none">Admin</div>
+      <a href="/usuarios/list.html" class="nav-link admin-only" id="nav-users" style="display:none">
+        <span class="icon">👥</span> Usuarios
+      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="user-chip">
@@ -42,7 +42,7 @@
     <div class="page-content">
       <div id="alert-global"></div>
       <div class="card">
-        <p style="color:#64748b;margin-bottom:1rem;font-size:.9rem">
+        <p style="color:var(--text-secondary);margin-bottom:1rem;font-size:.9rem">
           Ajusta la dificultad y las horas de estudio semanal para cada materia.
           Estos valores se usan para generar tu horario optimizado.
         </p>
