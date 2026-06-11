@@ -2,6 +2,7 @@ from flask import Blueprint, request, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
 from app.carreras import get_carreras_buscar
+from app.plan_estudios import PLAN_ESTUDIOS
 
 materias_bp = Blueprint('materias', __name__)
 
@@ -28,8 +29,9 @@ def get_materias():
 @require_auth
 def sync_materias():
     """
-    Importa las materias del estudiante desde horarios_usfx
-    según su perfil académico (carrera/semestre/grupo).
+    Re-sincroniza las materias del estudiante desde horarios_usfx filtradas
+    por el plan de estudios oficial (PLAN_ESTUDIOS). Preserva dificultad/horas/color
+    de materias que el usuario ya tenía configuradas.
     """
     uid = session['user']['id']
     db = get_db()
@@ -42,46 +44,55 @@ def sync_materias():
         db.close()
         return jsonify({'error': 'Configura tu perfil académico primero'}), 400
 
-    print(f"DEBUG sync - perfil: carrera='{perfil['carrera']}' semestre={perfil['semestre']} grupo='{perfil['grupo']}'")
+    carrera  = perfil['carrera']
+    semestre = perfil['semestre']
+    grupo    = perfil['grupo']
 
-    total_usfx = db.execute("SELECT COUNT(*) FROM horarios_usfx").fetchone()[0]
-    print(f"DEBUG sync - total en horarios_usfx: {total_usfx}")
-
-    carreras_buscar = get_carreras_buscar(perfil['carrera'])
-    placeholders = ','.join('?' * len(carreras_buscar))
+    # --- 1. Buscar materias en horarios_usfx (con carreras relacionadas) ---
+    carreras_buscar = get_carreras_buscar(carrera)
+    placeholders    = ','.join('?' * len(carreras_buscar))
 
     usfx = db.execute(
         f'''SELECT DISTINCT materia_codigo, materia_nombre
-           FROM horarios_usfx
-           WHERE carrera IN ({placeholders}) AND semestre=? AND grupo=?
-           ORDER BY materia_codigo''',
-        (*carreras_buscar, perfil['semestre'], perfil['grupo'])
+            FROM horarios_usfx
+            WHERE carrera IN ({placeholders}) AND semestre=? AND grupo=?
+            ORDER BY materia_codigo''',
+        (*carreras_buscar, semestre, grupo)
     ).fetchall()
-    print(f"DEBUG sync - carreras={carreras_buscar} materias={[r['materia_codigo'] for r in usfx]}")
 
     if not usfx:
-        # Fallback sin grupo: el nombre del grupo puede no coincidir exactamente
         usfx = db.execute(
             f'''SELECT DISTINCT materia_codigo, materia_nombre
-               FROM horarios_usfx
-               WHERE carrera IN ({placeholders}) AND semestre=?
-               ORDER BY materia_codigo''',
-            (*carreras_buscar, perfil['semestre'])
+                FROM horarios_usfx
+                WHERE carrera IN ({placeholders}) AND semestre=?
+                ORDER BY materia_codigo''',
+            (*carreras_buscar, semestre)
         ).fetchall()
-        print(f"DEBUG sync (sin grupo) - materias={[r['materia_codigo'] for r in usfx]}")
 
     if not usfx:
         db.close()
         return jsonify({
             'error': (
-                f"Sin materias para carrera='{perfil['carrera']}' "
-                f"(buscado en: {carreras_buscar}) "
-                f"semestre={perfil['semestre']} grupo='{perfil['grupo']}'. "
-                f"Total en DB: {total_usfx}"
+                f"Sin materias para carrera='{carrera}' "
+                f"semestre={semestre} grupo='{grupo}'. "
+                f"Verifica tu perfil académico."
             )
         }), 400
 
-    # Obtener colores existentes del usuario para no perder configuración
+    # --- 2. Filtrar por plan de estudios oficial ---
+    codigos_plan = set(PLAN_ESTUDIOS.get(carrera, {}).get(semestre, []))
+    if codigos_plan:
+        usfx_filtrado = [r for r in usfx if r['materia_codigo'] in codigos_plan]
+        # Si el filtro deja todo vacío (datos de horarios_usfx incompletos), usar sin filtro
+        if usfx_filtrado:
+            usfx = usfx_filtrado
+            print(f"DEBUG sync - plan aplicado: {len(usfx)} materias para {carrera} sem {semestre}")
+        else:
+            print(f"DEBUG sync - plan vacío tras filtro, usando sin filtro ({len(usfx)} materias)")
+    else:
+        print(f"DEBUG sync - sin plan para '{carrera}' sem {semestre}, sin filtro")
+
+    # --- 3. Preservar configuración previa (dificultad, horas, color) ---
     existentes = {
         r['materia_codigo']: dict(r) for r in db.execute(
             'SELECT materia_codigo, dificultad, horas_semana, color FROM materias_estudiante WHERE usuario_id=?',
@@ -89,16 +100,25 @@ def sync_materias():
         ).fetchall()
     }
 
+    # Reemplazar todas las materias: borrar las que ya no corresponden al semestre actual
+    codigos_nuevos = {r['materia_codigo'] for r in usfx}
+    for codigo_viejo in list(existentes.keys()):
+        if codigo_viejo not in codigos_nuevos:
+            db.execute(
+                'DELETE FROM materias_estudiante WHERE usuario_id=? AND materia_codigo=?',
+                (uid, codigo_viejo)
+            )
+
+    # --- 4. Insertar materias nuevas, preservando config de las ya existentes ---
     insertadas = 0
     for i, row in enumerate(usfx):
         codigo = row['materia_codigo']
         nombre = row['materia_nombre'] or codigo
-        color  = COLORES_DEFAULT[i % len(COLORES_DEFAULT)]
 
         if codigo in existentes:
-            # No sobreescribir configuración existente
             continue
 
+        color = COLORES_DEFAULT[i % len(COLORES_DEFAULT)]
         db.execute(
             '''INSERT OR IGNORE INTO materias_estudiante
                (usuario_id, materia_codigo, materia_nombre, dificultad, horas_semana, color)
@@ -109,7 +129,6 @@ def sync_materias():
 
     db.commit()
 
-    # Retornar lista actualizada
     rows = db.execute(
         'SELECT * FROM materias_estudiante WHERE usuario_id=? ORDER BY materia_nombre',
         (uid,)
