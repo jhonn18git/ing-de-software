@@ -133,9 +133,7 @@ function renderSlot(slot) {
     </td>`;
   }
   if (slot.tipo === 'estudio') {
-    const bg = slot.color || '#3182ce';
-    const fg = lightColor(bg) ? '#1a202c' : '#fff';
-    return `<td class="slot-estudio" style="background:${bg};color:${fg}"
+    return `<td class="slot-estudio" style="background:#48bb78;color:#1a202c"
                 title="Estudiar: ${escHtml(slot.nombre)}">
       <div class="slot-inner">
         <small>${escHtml(slot.nombre)}</small>

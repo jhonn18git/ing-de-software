@@ -187,6 +187,8 @@ def init_db():
 
     # TEMP: forzar recarga completa del seed (2026-06-10) — eliminar tras validar en prod
     conn.execute("DELETE FROM horarios_usfx")
+    conn.execute("DELETE FROM horario_clases_usuario")
+    conn.execute("DELETE FROM horario_estudio")
     conn.commit()
 
     from app.seed_horarios import seed_horarios
