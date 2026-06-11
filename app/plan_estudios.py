@@ -16,7 +16,7 @@ PLAN_ESTUDIOS = {
         9:  ["SHC160", "SHC170", "SHC180"],
         10: ["SHC190"],
     },
-    "Ingeniería en Telecomunicaciones": {
+    "Ingeniería de Telecomunicaciones": {
         1:  ["FIS100", "MAT100", "MAT101", "SHC100", "SIS100"],
         2:  ["COM530", "FIS102", "MAT102", "MAT103", "MAT106", "MAT280"],
         3:  ["ELC100", "FIS200", "MAT207", "MAT218", "SIS251", "TEL100"],
@@ -73,7 +73,7 @@ PLAN_ESTUDIOS = {
         9:  ["SHC160", "SHC170", "SHC180"],
         10: ["SHC190"],
     },
-    "Ingeniería en Diseño y Animación Digital": {
+    "Ing. Diseño y Automatización Digital": {
         1:  ["COM100", "DAG101", "FIS100", "MAT100", "MAT101"],
         2:  ["COM110", "DAG112", "FIS111", "MAT102", "MAT103"],
         3:  ["COM200", "COM203", "DAG234", "DAG235", "DAG236", "MAT280"],

@@ -9,15 +9,15 @@ CARRERAS_RELACIONADAS = {
         'Ingeniería de Sistemas',
         'Ingeniería en Tecnologías de la Información y Seguridad',
     ],
-    'Ingeniería en Telecomunicaciones': [
+    'Ingeniería de Telecomunicaciones': [
         'Ingeniería de Sistemas',
-        'Ingeniería en Telecomunicaciones',
+        'Ingeniería de Telecomunicaciones',
     ],
     'Ingeniería de Sistemas': [
         'Ingeniería de Sistemas',
     ],
-    'Ingeniería en Diseño y Animación Digital': [
-        'Ingeniería en Diseño y Animación Digital',
+    'Ing. Diseño y Automatización Digital': [
+        'Ing. Diseño y Automatización Digital',
     ],
     'Ingeniería en Ciberseguridad': [
         'Ingeniería en Ciberseguridad',

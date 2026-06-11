@@ -3,7 +3,17 @@ import time
 from datetime import date, timedelta
 
 DIAS  = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
-HORAS = [f'{h:02d}:00' for h in range(7, 22)]   # 07:00 ... 21:00
+HORAS = [
+    f'{h:02d}:{m:02d}'
+    for h in range(7, 22)
+    for m in (0, 30)
+]  # 07:00, 07:30, 08:00, … 21:30
+
+
+def _hm(t: str) -> int:
+    """Convert 'HH:MM' → total minutes since midnight."""
+    h, m = t.split(':')
+    return int(h) * 60 + int(m)
 
 
 def _lunes_semana() -> str:
@@ -126,12 +136,15 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
             # Producto cruzado: el alumno necesita UNA de teoria Y UNA de lab
             for st, it in teo.items():
                 for sl, il in lab.items():
+                    # Tag each block with its source section for display logic
+                    bloques = [dict(b, bloque_sec=st) for b in it['bloques']]
+                    bloques += [dict(b, bloque_sec=sl) for b in il['bloques']]
                     opciones.append({
                         'seccion':     st,
                         'seccion_lab': sl,
                         'nombre':      it['nombre'],
                         'profesor':    it['profesor'],
-                        'bloques':     it['bloques'] + il['bloques'],
+                        'bloques':     bloques,
                     })
         elif teo:
             for st, it in teo.items():
@@ -180,18 +193,18 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
         by_day: dict[str, set] = {}
         for opcion in asignacion.values():
             for b in opcion['bloques']:
-                hi = int(b['hora_inicio'][:2])
-                hf = int(b['hora_fin'][:2])
-                by_day.setdefault(b['dia'], set()).update(range(hi, hf))
+                hi = _hm(b['hora_inicio'])
+                hf = _hm(b['hora_fin'])
+                by_day.setdefault(b['dia'], set()).update(range(hi, hf, 30))
 
         total = 0
-        for horas in by_day.values():
-            if not horas:
+        for slots in by_day.values():
+            if not slots:
                 continue
-            span = range(min(horas), max(horas) + 1)
-            huecos = sum(1 for h in span if h not in horas)
+            span = range(min(slots), max(slots) + 30, 30)
+            huecos = sum(1 for s in span if s not in slots)
             total -= huecos
-        total += (len(DIAS) - len(by_day)) * 2   # bonus por dias libres
+        total += (len(DIAS) - len(by_day)) * 4  # bonus por dias libres
         return total
 
     def backtrack(idx, asignacion, bloques_usados):
@@ -277,7 +290,30 @@ def generar_horario(usuario_id: int, db) -> dict:
     if row:
         try:
             for entry in json.loads(row['horario_json']):
+                sec     = entry.get('seccion', '')
+                sec_lab = entry.get('seccion_lab', '')
+                # Build a set of (dia, hora_inicio) for teo blocks and lab blocks
+                teo_slots = set()
+                lab_slots = set()
+                for b in entry.get('bloques', []):
+                    key = (b['dia'], b['hora_inicio'])
+                    if b.get('bloque_sec', sec) == sec_lab and sec_lab:
+                        lab_slots.add(key)
+                    else:
+                        teo_slots.add(key)
                 for bloque in entry.get('bloques', []):
+                    key = (bloque['dia'], bloque['hora_inicio'])
+                    bs  = bloque.get('bloque_sec', sec)
+                    # Show both secciones only when teo AND lab share this exact slot
+                    if sec_lab and key in teo_slots and key in lab_slots:
+                        disp_sec     = sec
+                        disp_sec_lab = sec_lab
+                    elif bs == sec_lab and sec_lab:
+                        disp_sec     = sec_lab
+                        disp_sec_lab = ''
+                    else:
+                        disp_sec     = sec
+                        disp_sec_lab = ''
                     clases.append({
                         'dia':            bloque['dia'],
                         'hora_inicio':    bloque['hora_inicio'],
@@ -285,8 +321,8 @@ def generar_horario(usuario_id: int, db) -> dict:
                         'materia_codigo': entry['materia_codigo'],
                         'materia_nombre': entry.get('materia_nombre', entry['materia_codigo']),
                         'aula':           bloque.get('aula', ''),
-                        'seccion':        entry.get('seccion', ''),
-                        'seccion_lab':    entry.get('seccion_lab', ''),
+                        'seccion':        disp_sec,
+                        'seccion_lab':    disp_sec_lab,
                         'profesor':       entry.get('profesor', ''),
                     })
         except Exception:
@@ -315,15 +351,13 @@ def generar_horario(usuario_id: int, db) -> dict:
         for dia in DIAS
     }
 
-    # 5. Marcar clases
+    # 5. Marcar clases (usa comparación de strings HH:MM, funciona correctamente)
     for clase in clases:
         dia = clase['dia']
         if dia not in grilla:
             continue
         hi = clase['hora_inicio']
         hf = clase['hora_fin']
-        if hi not in HORAS:
-            continue
         for h in HORAS:
             if hi <= h < hf:
                 grilla[dia][h] = {
@@ -372,11 +406,11 @@ def generar_horario(usuario_id: int, db) -> dict:
             elegida = None
             for m in materias_sorted:
                 cod = m['materia_codigo']
-                if pendiente.get(cod, 0) < 0.5:
+                if pendiente.get(cod, 0) < 0.25:
                     continue
-                if asignadas_dia[dia].get(cod, 0) >= 2:
+                if asignadas_dia[dia].get(cod, 0) >= 4:  # max 2h/día
                     continue
-                if consec.get(cod, 0) >= 2:
+                if consec.get(cod, 0) >= 4:              # max 2h consecutivas
                     continue
                 elegida = m
                 break
@@ -392,7 +426,7 @@ def generar_horario(usuario_id: int, db) -> dict:
                 'nombre': elegida['materia_nombre'],
                 'color':  elegida.get('color', '#3182ce'),
             }
-            pendiente[cod] = max(0.0, pendiente[cod] - 1.0)
+            pendiente[cod] = max(0.0, pendiente[cod] - 0.5)
             asignadas_dia[dia][cod] = asignadas_dia[dia].get(cod, 0) + 1
             for other in list(consec):
                 if other != cod:
