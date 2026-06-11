@@ -29,6 +29,40 @@ def _migrate_horarios_usfx(conn):
     conn.commit()
 
 
+def _migrate_users_rol(conn):
+    """Elimina CHECK constraint de rol y convierte demandante/ofertante → estudiante."""
+    schema = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'"
+    ).fetchone()
+    if not schema or 'demandante' not in schema[0]:
+        return
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS users_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            image TEXT DEFAULT 'default.jpg',
+            rol TEXT DEFAULT 'estudiante',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.execute('''
+        INSERT OR IGNORE INTO users_new
+            (id, name, username, email, password, image, rol, created_at, updated_at)
+        SELECT id, name, username, email, password, image,
+               CASE WHEN rol = 'admin' THEN 'admin' ELSE 'estudiante' END,
+               created_at, updated_at
+        FROM users
+    ''')
+    conn.execute('DROP TABLE users')
+    conn.execute('ALTER TABLE users_new RENAME TO users')
+    conn.commit()
+    logger.info('Migrado users: CHECK constraint eliminado, roles → admin/estudiante')
+
+
 def _migrate_perfil_academico(conn):
     """
     Si perfil_academico tiene 'grupo' con NOT NULL, lo recrea con grupo opcional.
@@ -68,6 +102,7 @@ def init_db():
 
     # Migraciones de esquema (idempotentes)
     _migrate_horarios_usfx(conn)
+    _migrate_users_rol(conn)
     _migrate_perfil_academico(conn)
 
     c.execute('''
@@ -78,7 +113,7 @@ def init_db():
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             image TEXT DEFAULT 'default.jpg',
-            rol TEXT CHECK(rol IN ('admin','ofertante','demandante')) DEFAULT 'demandante',
+            rol TEXT DEFAULT 'estudiante',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -175,8 +210,8 @@ def init_db():
     if count == 0:
         seed_users = [
             ('Jhonn Llanos Rojas',       'jhonn',  'jhonn@smartschedule.com',  '123', 'admin'),
-            ('Camila Montecinos Solis',   'camila', 'camila@smartschedule.com', '123', 'ofertante'),
-            ('Erick Arancibia Flores',    'erick',  'erick@smartschedule.com',  '123', 'demandante'),
+            ('Camila Montecinos Solis',   'camila', 'camila@smartschedule.com', '123', 'estudiante'),
+            ('Erick Arancibia Flores',    'erick',  'erick@smartschedule.com',  '123', 'estudiante'),
         ]
         c.executemany(
             'INSERT INTO users (name, username, email, password, rol) VALUES (?, ?, ?, ?, ?)',

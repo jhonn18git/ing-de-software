@@ -46,9 +46,8 @@ function formatDate(dateStr) {
   });
 }
 
-function getBadgeHtml(rol) {
-  const map = { admin: 'badge-admin', ofertante: 'badge-ofertante', demandante: 'badge-demandante' };
-  return `<span class="badge ${map[rol] || ''}">${escHtml(rol)}</span>`;
+function getBadgeHtml(_rol) {
+  return '<span class="badge">Estudiante</span>';
 }
 
 function getStatusBadge(status) {
@@ -82,11 +81,11 @@ async function requireSession(redirectTo = '/index.html') {
 }
 
 function setUserChip(user) {
-  const nameEl = document.getElementById('user-name');
-  const roleEl = document.getElementById('user-role');
+  const nameEl   = document.getElementById('user-name');
+  const roleEl   = document.getElementById('user-role');
   const avatarEl = document.getElementById('user-avatar');
-  if (nameEl) nameEl.textContent = user.name;
-  if (roleEl) roleEl.textContent = user.rol;
+  if (nameEl)   nameEl.textContent   = user.name;
+  if (roleEl)   roleEl.textContent   = 'Estudiante USFX';
   if (avatarEl) avatarEl.textContent = user.name.charAt(0).toUpperCase();
 
   if (user.rol === 'admin') {

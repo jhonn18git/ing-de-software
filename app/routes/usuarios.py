@@ -35,23 +35,20 @@ def get_user(id):
 @usuarios_bp.route('/api/usuarios', methods=['POST'])
 @require_admin
 def create_user():
-    data = request.get_json() or {}
-    name = data.get('name', '').strip()
+    data     = request.get_json() or {}
+    name     = data.get('name', '').strip()
     username = data.get('username', '').strip()
-    email = data.get('email', '').strip()
+    email    = data.get('email', '').strip()
     password = data.get('password', '')
-    rol = data.get('rol', 'demandante')
 
     if not all([name, username, email, password]):
         return jsonify({'error': 'Todos los campos son obligatorios'}), 400
-    if rol not in ['admin', 'ofertante', 'demandante']:
-        return jsonify({'error': 'Rol inválido'}), 400
 
     conn = get_db()
     try:
         cursor = conn.execute(
             'INSERT INTO users (name, username, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-            (name, username, email, password, rol)
+            (name, username, email, password, 'estudiante')
         )
         conn.commit()
         user = conn.execute(f'SELECT {SAFE_FIELDS} FROM users WHERE id = ?', (cursor.lastrowid,)).fetchone()
@@ -77,13 +74,12 @@ def update_user(id):
         conn.close()
         return jsonify({'error': 'Usuario no encontrado'}), 404
 
-    data = request.get_json() or {}
-    u = dict(user)
-    name = data.get('name', u['name'])
+    data     = request.get_json() or {}
+    u        = dict(user)
+    name     = data.get('name',     u['name'])
     username = data.get('username', u['username'])
-    email = data.get('email', u['email'])
+    email    = data.get('email',    u['email'])
     password = data.get('password') or u['password']
-    rol = data.get('rol', u['rol']) if current['rol'] == 'admin' else u['rol']
 
     if not all([name, username, email]):
         conn.close()
@@ -91,11 +87,11 @@ def update_user(id):
 
     try:
         conn.execute(
-            'UPDATE users SET name=?, username=?, email=?, password=?, rol=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
-            (name, username, email, password, rol, id)
+            'UPDATE users SET name=?, username=?, email=?, password=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+            (name, username, email, password, id)
         )
         conn.commit()
-        updated = conn.execute(f'SELECT {SAFE_FIELDS} FROM users WHERE id = ?', (id,)).fetchone()
+        updated      = conn.execute(f'SELECT {SAFE_FIELDS} FROM users WHERE id = ?', (id,)).fetchone()
         conn.close()
         updated_dict = dict(updated)
 

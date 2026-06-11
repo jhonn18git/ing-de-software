@@ -23,12 +23,12 @@ async function init() {
 
 async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
-  tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando usuarios...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" class="loading">Cargando usuarios...</td></tr>';
 
   try {
     const users = await api.get('/usuarios');
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">👤</div><h3>Sin usuarios</h3></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">👤</div><h3>Sin usuarios</h3></div></td></tr>';
       return;
     }
 
@@ -37,7 +37,6 @@ async function loadUsers() {
         <td><strong>${escHtml(u.name)}</strong></td>
         <td>${escHtml(u.username)}</td>
         <td>${escHtml(u.email)}</td>
-        <td>${getBadgeHtml(u.rol)}</td>
         <td>${formatDate(u.created_at)}</td>
         <td>
           <div class="actions">
@@ -50,7 +49,7 @@ async function loadUsers() {
       </tr>
     `).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-error">${escHtml(err.message)}</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5"><div class="alert alert-error">${escHtml(err.message)}</div></td></tr>`;
   }
 }
 
@@ -71,11 +70,10 @@ function initCreateForm() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = {
-      name: document.getElementById('name').value.trim(),
+      name:     document.getElementById('name').value.trim(),
       username: document.getElementById('username').value.trim(),
-      email: document.getElementById('email').value.trim(),
+      email:    document.getElementById('email').value.trim(),
       password: document.getElementById('password').value,
-      rol: document.getElementById('rol').value
     };
 
     if (!data.name || !data.username || !data.email || !data.password) {
@@ -95,23 +93,17 @@ function initCreateForm() {
 async function loadEditForm(id) {
   try {
     const user = await api.get(`/usuarios/${id}`);
-    document.getElementById('name').value = user.name;
+    document.getElementById('name').value     = user.name;
     document.getElementById('username').value = user.username;
-    document.getElementById('email').value = user.email;
-    if (currentUser.rol === 'admin') {
-      document.getElementById('rol').value = user.rol;
-    } else {
-      document.getElementById('rol-group').style.display = 'none';
-    }
+    document.getElementById('email').value    = user.email;
 
     const form = document.getElementById('user-form');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = {
-        name: document.getElementById('name').value.trim(),
+        name:     document.getElementById('name').value.trim(),
         username: document.getElementById('username').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        rol: currentUser.rol === 'admin' ? document.getElementById('rol').value : undefined
+        email:    document.getElementById('email').value.trim(),
       };
 
       if (!data.name || !data.username || !data.email) {
