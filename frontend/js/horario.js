@@ -123,11 +123,14 @@ function renderGrid(horario) {
 
 function renderSlot(slot) {
   if (slot.tipo === 'clase') {
-    const detalle = [slot.seccion, slot.aula, slot.profesor].filter(Boolean).join(' · ');
+    const secDisplay = slot.seccion_lab
+      ? `${slot.seccion || ''} + ${slot.seccion_lab}`
+      : (slot.seccion || slot.aula || '');
+    const detalle = [secDisplay, slot.profesor].filter(Boolean).join(' · ');
     return `<td class="slot-clase" title="${escHtml(slot.nombre)}${detalle ? ' — ' + detalle : ''}">
       <div class="slot-inner">
         <strong>${escHtml(slot.codigo)}</strong>
-        <small>${escHtml(slot.seccion || slot.aula || '')}</small>
+        <small>${escHtml(secDisplay)}</small>
       </div>
     </td>`;
   }

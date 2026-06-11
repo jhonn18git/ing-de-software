@@ -124,10 +124,11 @@ function renderPreviewClases(clases) {
       .map(([d, hs]) => `<span style="color:var(--accent-secondary)">${d}</span> ${hs.join(', ')}`)
       .join(' &nbsp;|&nbsp; ') || '<span style="color:var(--text-secondary)">Sin horario</span>';
 
+    const secLabel = [m.seccion, m.seccion_lab].filter(Boolean).join(' + ') || '—';
     return `<tr>
       <td><strong>${escHtml(m.materia_codigo)}</strong></td>
       <td>${escHtml(m.materia_nombre || m.materia_codigo)}</td>
-      <td><span class="badge badge-admin">${escHtml(m.seccion || '—')}</span></td>
+      <td><span class="badge badge-admin">${escHtml(secLabel)}</span></td>
       <td style="font-size:.82rem;color:var(--text-secondary)">${escHtml(m.profesor || '—')}</td>
       <td style="font-size:.82rem">${horario}</td>
     </tr>`;

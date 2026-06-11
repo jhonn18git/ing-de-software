@@ -3,7 +3,7 @@ import time
 from datetime import date, timedelta
 
 DIAS  = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
-HORAS = [f'{h:02d}:00' for h in range(7, 22)]   # 07:00 … 21:00
+HORAS = [f'{h:02d}:00' for h in range(7, 22)]   # 07:00 ... 21:00
 
 
 def _lunes_semana() -> str:
@@ -12,17 +12,26 @@ def _lunes_semana() -> str:
     return str(lunes)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ARMADO DE HORARIO DE CLASES (backtracking)
-# ─────────────────────────────────────────────────────────────────────────────
+def _es_seccion_lab(seccion: str) -> bool:
+    s = seccion.upper()
+    return s.startswith('GL') or s.startswith('GP')
+
+
+# -----------------------------------------------------------------------
+# ARMADO DE HORARIO DE CLASES (backtracking con teoria+laboratorio)
+# -----------------------------------------------------------------------
 
 def armar_horario_clases(carrera: str, semestre: int, db) -> list:
     """
-    Elige una sección por cada materia del semestre (carrera+semestre) de forma
-    que no haya conflictos de horario y se minimicen los huecos entre clases.
+    Elige secciones para cada materia del semestre sin conflictos horarios,
+    minimizando huecos entre clases.
+
+    Para materias que tienen secciones de teoria (G*, GT*) Y laboratorio
+    (GL*, GP*), selecciona UNA seccion de cada tipo; los bloques de ambas
+    se unen en el resultado.
 
     Retorna lista de:
-      {materia_codigo, materia_nombre, seccion, profesor,
+      {materia_codigo, materia_nombre, seccion, seccion_lab, profesor,
        bloques: [{dia, hora_inicio, hora_fin, aula}]}
     """
     from app.plan_estudios import PLAN_ESTUDIOS
@@ -45,7 +54,7 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
     if not codigos:
         return []
 
-    # ── Cargar secciones disponibles por materia ──────────────────────────────
+    # --- Cargar secciones disponibles por materia, deduplicando bloques ------
     materias_secciones: dict[str, dict] = {}
 
     for codigo in codigos:
@@ -65,7 +74,7 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
                     'nombre':   r['materia_nombre'] or codigo,
                     'profesor': r['profesor'] or '',
                     'bloques':  [],
-                    '_seen':    set(),   # para deduplicar bloques entre carreras
+                    '_seen':    set(),
                 }
             bloque_key = (r['dia'], r['hora_inicio'])
             if bloque_key not in secciones[sec]['_seen']:
@@ -77,7 +86,6 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
                     'aula':        r['aula'] or '',
                 })
 
-        # Quitar campo interno antes de pasar al backtracking
         for sec_info in secciones.values():
             sec_info.pop('_seen', None)
 
@@ -86,30 +94,77 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
 
     if not materias_secciones:
         return [{'materia_codigo': c, 'materia_nombre': c,
-                 'seccion': '', 'profesor': '', 'bloques': []} for c in codigos]
+                 'seccion': '', 'seccion_lab': '', 'profesor': '', 'bloques': []} for c in codigos]
 
-    # ── Backtracking ──────────────────────────────────────────────────────────
-    # Ordenar materias: menor número de secciones primero (poda más rápida)
-    orden = sorted(materias_secciones.keys(), key=lambda c: len(materias_secciones[c]))
+    # --- Clasificar secciones por tipo y construir opciones de eleccion -------
+    # opciones_materia: {codigo: [opcion, ...]}
+    # cada opcion = {seccion, seccion_lab, nombre, profesor, bloques}
+    opciones_materia: dict[str, list] = {}
+
+    for codigo, secciones in materias_secciones.items():
+        teo = {s: i for s, i in secciones.items() if not _es_seccion_lab(s)}
+        lab = {s: i for s, i in secciones.items() if _es_seccion_lab(s)}
+
+        opciones: list = []
+
+        if teo and lab:
+            # Producto cruzado: el alumno necesita UNA de teoria Y UNA de lab
+            for st, it in teo.items():
+                for sl, il in lab.items():
+                    opciones.append({
+                        'seccion':     st,
+                        'seccion_lab': sl,
+                        'nombre':      it['nombre'],
+                        'profesor':    it['profesor'],
+                        'bloques':     it['bloques'] + il['bloques'],
+                    })
+        elif teo:
+            for st, it in teo.items():
+                opciones.append({
+                    'seccion':     st,
+                    'seccion_lab': '',
+                    'nombre':      it['nombre'],
+                    'profesor':    it['profesor'],
+                    'bloques':     it['bloques'],
+                })
+        else:
+            for sl, il in lab.items():
+                opciones.append({
+                    'seccion':     '',
+                    'seccion_lab': sl,
+                    'nombre':      il['nombre'],
+                    'profesor':    il['profesor'],
+                    'bloques':     il['bloques'],
+                })
+
+        if opciones:
+            opciones_materia[codigo] = opciones
+
+    if not opciones_materia:
+        return [{'materia_codigo': c, 'materia_nombre': c,
+                 'seccion': '', 'seccion_lab': '', 'profesor': '', 'bloques': []} for c in codigos]
+
+    # --- Backtracking ---------------------------------------------------------
+    # Orden: menos opciones primero (poda mas agresiva)
+    orden = sorted(opciones_materia.keys(), key=lambda c: len(opciones_materia[c]))
 
     best_score:      list = [None]
     best_asignacion: list = [None]
-    deadline = time.time() + 3.0   # máx 3 s de backtracking
+    deadline = time.time() + 4.0   # max 4 s (producto cruzado amplia espacio)
 
     def _conflicto(nuevos, existentes):
         for nb in nuevos:
             for eb in existentes:
                 if nb['dia'] != eb['dia']:
                     continue
-                if nb['hora_inicio'] < eb['hora_fin'] and nb['hora_fin'] > nb['hora_inicio']:
-                    if nb['hora_inicio'] < eb['hora_fin'] and nb['hora_fin'] > eb['hora_inicio']:
-                        return True
+                if nb['hora_inicio'] < eb['hora_fin'] and nb['hora_fin'] > eb['hora_inicio']:
+                    return True
         return False
 
     def _score(asignacion):
         by_day: dict[str, set] = {}
-        for sec_info in asignacion.values():
-            for b in sec_info['bloques']:
+        for opcion in asignacion.values():
+            for b in opcion['bloques']:
                 hi = int(b['hora_inicio'][:2])
                 hf = int(b['hora_fin'][:2])
                 by_day.setdefault(b['dia'], set()).update(range(hi, hf))
@@ -121,7 +176,7 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
             span = range(min(horas), max(horas) + 1)
             huecos = sum(1 for h in span if h not in horas)
             total -= huecos
-        total += (len(DIAS) - len(by_day)) * 2   # bonus por días libres
+        total += (len(DIAS) - len(by_day)) * 2   # bonus por dias libres
         return total
 
     def backtrack(idx, asignacion, bloques_usados):
@@ -134,72 +189,71 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
                 best_asignacion[0] = {k: dict(v) for k, v in asignacion.items()}
             return
 
-        codigo   = orden[idx]
-        secciones = materias_secciones[codigo]
+        codigo  = orden[idx]
+        opciones = opciones_materia[codigo]
 
-        # Ordenar secciones: las que tienen menos días de clase primero
-        secciones_ord = sorted(
-            secciones.items(),
-            key=lambda kv: len({b['dia'] for b in kv[1]['bloques']})
-        )
+        # Ordenar: menos dias distintos primero
+        opciones_ord = sorted(opciones, key=lambda o: len({b['dia'] for b in o['bloques']}))
 
-        for sec, info in secciones_ord:
+        for opcion in opciones_ord:
             if time.time() > deadline:
                 break
-            if _conflicto(info['bloques'], bloques_usados):
+            if _conflicto(opcion['bloques'], bloques_usados):
                 continue
-            asignacion[codigo] = info | {'seccion': sec}
-            backtrack(idx + 1, asignacion, bloques_usados + info['bloques'])
+            asignacion[codigo] = opcion
+            backtrack(idx + 1, asignacion, bloques_usados + opcion['bloques'])
             del asignacion[codigo]
 
     backtrack(0, {}, [])
 
-    # ── Construir resultado ───────────────────────────────────────────────────
+    # --- Construir resultado --------------------------------------------------
     result = []
     asig = best_asignacion[0] or {}
 
     for codigo in codigos:
         if codigo in asig:
-            info = asig[codigo]
+            op = asig[codigo]
             result.append({
                 'materia_codigo': codigo,
-                'materia_nombre': info.get('nombre', codigo),
-                'seccion':        info.get('seccion', ''),
-                'profesor':       info.get('profesor', ''),
-                'bloques':        info.get('bloques', []),
+                'materia_nombre': op.get('nombre', codigo),
+                'seccion':        op.get('seccion', ''),
+                'seccion_lab':    op.get('seccion_lab', ''),
+                'profesor':       op.get('profesor', ''),
+                'bloques':        op.get('bloques', []),
             })
-        elif codigo in materias_secciones:
-            # Fallback: primera sección sin verificar conflictos
-            sec, info = next(iter(materias_secciones[codigo].items()))
+        elif codigo in opciones_materia:
+            # Fallback: primera opcion sin verificar conflictos
+            op = opciones_materia[codigo][0]
             result.append({
                 'materia_codigo': codigo,
-                'materia_nombre': info['nombre'],
-                'seccion':        sec,
-                'profesor':       info['profesor'],
-                'bloques':        info['bloques'],
+                'materia_nombre': op['nombre'],
+                'seccion':        op['seccion'],
+                'seccion_lab':    op['seccion_lab'],
+                'profesor':       op['profesor'],
+                'bloques':        op['bloques'],
             })
         else:
             result.append({'materia_codigo': codigo, 'materia_nombre': codigo,
-                           'seccion': '', 'profesor': '', 'bloques': []})
+                           'seccion': '', 'seccion_lab': '', 'profesor': '', 'bloques': []})
 
     return result
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GENERACIÓN DE HORARIO DE ESTUDIO
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------
+# GENERACION DE HORARIO DE ESTUDIO
+# -----------------------------------------------------------------------
 
 def generar_horario(usuario_id: int, db) -> dict:
     """
     Genera el horario semanal de estudio:
     1. Lee clases desde horario_clases_usuario (armado por armar_horario_clases)
-    2. Carga materias_estudiante y evaluaciones próximas
+    2. Carga materias_estudiante y evaluaciones proximas
     3. Marca slots de CLASE en la grilla
-    4. Llena huecos con ESTUDIO proporcional a dificultad×urgencia
+    4. Llena huecos con ESTUDIO proporcional a dificultad x urgencia
     """
     c = db.cursor()
 
-    # ── 1. Clases del usuario (desde horario_clases_usuario) ──────────────────
+    # 1. Clases del usuario (desde horario_clases_usuario)
     clases = []
     row = c.execute(
         'SELECT horario_json FROM horario_clases_usuario WHERE usuario_id=?',
@@ -217,19 +271,20 @@ def generar_horario(usuario_id: int, db) -> dict:
                         'materia_nombre': entry.get('materia_nombre', entry['materia_codigo']),
                         'aula':           bloque.get('aula', ''),
                         'seccion':        entry.get('seccion', ''),
+                        'seccion_lab':    entry.get('seccion_lab', ''),
                         'profesor':       entry.get('profesor', ''),
                     })
         except Exception:
             pass
 
-    # ── 2. Materias del estudiante ────────────────────────────────────────────
+    # 2. Materias del estudiante
     materias = [dict(r) for r in c.execute(
         'SELECT * FROM materias_estudiante WHERE usuario_id=?', (usuario_id,)
     ).fetchall()]
     if not materias:
         return _horario_vacio()
 
-    # ── 3. Evaluaciones próximas (14 días) ────────────────────────────────────
+    # 3. Evaluaciones proximas (14 dias)
     hoy    = date.today()
     limite = hoy + timedelta(days=14)
     evals  = [dict(r) for r in c.execute(
@@ -239,13 +294,13 @@ def generar_horario(usuario_id: int, db) -> dict:
         (usuario_id, str(hoy), str(limite))
     ).fetchall()]
 
-    # ── 4. Grilla vacía ───────────────────────────────────────────────────────
+    # 4. Grilla vacia
     grilla: dict[str, dict[str, dict]] = {
         dia: {hora: {'hora': hora, 'tipo': 'libre'} for hora in HORAS}
         for dia in DIAS
     }
 
-    # ── 5. Marcar clases ──────────────────────────────────────────────────────
+    # 5. Marcar clases
     for clase in clases:
         dia = clase['dia']
         if dia not in grilla:
@@ -257,16 +312,17 @@ def generar_horario(usuario_id: int, db) -> dict:
         for h in HORAS:
             if hi <= h < hf:
                 grilla[dia][h] = {
-                    'hora':    h,
-                    'tipo':    'clase',
-                    'codigo':  clase['materia_codigo'],
-                    'nombre':  clase['materia_nombre'],
-                    'aula':    clase.get('aula', ''),
-                    'seccion': clase.get('seccion', ''),
-                    'profesor':clase.get('profesor', ''),
+                    'hora':       h,
+                    'tipo':       'clase',
+                    'codigo':     clase['materia_codigo'],
+                    'nombre':     clase['materia_nombre'],
+                    'aula':       clase.get('aula', ''),
+                    'seccion':    clase.get('seccion', ''),
+                    'seccion_lab':clase.get('seccion_lab', ''),
+                    'profesor':   clase.get('profesor', ''),
                 }
 
-    # ── 6. Horas de estudio por materia ───────────────────────────────────────
+    # 6. Horas de estudio por materia
     def urgencia(codigo: str) -> float:
         factor = 1.0
         for ev in evals:
@@ -287,7 +343,7 @@ def generar_horario(usuario_id: int, db) -> dict:
     materias_sorted = sorted(materias, key=lambda m: m['dificultad'], reverse=True)
     pendiente       = dict(horas_obj)
 
-    # ── 7. Asignar bloques de estudio ────────────────────────────────────────
+    # 7. Asignar bloques de estudio
     asignadas_dia: dict[str, dict[str, float]] = {d: {} for d in DIAS}
 
     for dia in DIAS:
@@ -328,7 +384,7 @@ def generar_horario(usuario_id: int, db) -> dict:
                     consec[other] = 0
             consec[cod] = consec.get(cod, 0) + 1
 
-    # ── 8. Armar respuesta ────────────────────────────────────────────────────
+    # 8. Armar respuesta
     dias_json = {dia: list(grilla[dia].values()) for dia in DIAS}
 
     resumen: dict[str, dict] = {}
