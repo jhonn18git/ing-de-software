@@ -1,8 +1,9 @@
 """
 Genera seed_horarios.py parseando los CSVs crudos de las 5 planillas USFX.
+Para CIC semestre 4 y 5, usa los Excel verificados como fuente autoritativa.
 Ejecutar: py -3 gen_seed.py
 """
-import csv, io, re, glob, unicodedata
+import csv, io, re, glob, unicodedata, os
 from collections import defaultdict
 
 
@@ -49,12 +50,13 @@ def norm_hora(h: str) -> str:
     return ('0' + h) if re.match(r'^\d:\d\d$', h) else h
 
 
-def parse_csv(path: str) -> list:
+def parse_csv(path: str, seen_override: set = None) -> list:
     """
     Parsea un sheet CSV de planilla USFX.
     Retorna lista de tuplas:
       (carrera, semestre, materia, materia, seccion, profesor, dia, hi, hf, aula)
     Solo incluye grupos GESTION 01/2026.
+    seen_override: (carrera, semestre) pairs already covered (e.g. by Excel) — skip them.
     """
     with open(path, encoding='utf-8', errors='replace') as f:
         raw = f.read()
@@ -65,7 +67,8 @@ def parse_csv(path: str) -> list:
     current_car  = None   # canonical
     skip_group   = False
 
-    seen = set()   # (carrera_canon, semestre) already processed from a previous CARRERA: block
+    # seen: first-grupo-per-file tracking; starts pre-populated with Excel-covered pairs
+    seen = set(seen_override) if seen_override else set()
 
     i = 0
     while i < len(rows):
@@ -168,8 +171,89 @@ def merge_records(records: list) -> list:
     return merged
 
 
+_CIC = 'Ingeniería en Ciencias de la Computación'
+
+# Excel files (CIC sem 4 and 5 authoritative schedule)
+_EXCEL_SOURCES = [
+    (os.path.join(os.path.dirname(__file__), '..', 'Horario 5to semestre.xlsx'), _CIC, 5),
+    (os.path.join(os.path.dirname(__file__), '..', 'Horario 4to semestre.xlsx'), _CIC, 4),
+]
+
+# Day column pairs (0-indexed): (subject_col, aula_col) for Lunes,Martes,Mie,Jue,Vie
+_EXCEL_DAY_COLS = [(2, 3), (4, 5), (6, 7), (8, 9), (10, 11)]
+_EXCEL_DIAS     = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
+
+
+def parse_excel_horario(xlsx_path: str, carrera: str, semestre: int) -> list:
+    """Parse a verified-schedule Excel file into the same record format as parse_csv."""
+    try:
+        import openpyxl
+    except ImportError:
+        print(f"  WARN: openpyxl not installed, skipping {xlsx_path}")
+        return []
+
+    if not os.path.exists(xlsx_path):
+        print(f"  WARN: Excel not found: {xlsx_path}")
+        return []
+
+    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    ws = wb.active
+    records = set()
+
+    for row in ws.iter_rows():
+        vals = [str(c.value if c.value is not None else '').strip() for c in row]
+        if len(vals) < 12:
+            continue
+
+        # Col A: time range "7:00  -  8:00" or "18:30 - 19:30"
+        m = re.match(r'(\d+:\d+)\s*-\s*(\d+:\d+)', vals[0])
+        if not m:
+            continue
+        hi = norm_hora(m.group(1))
+        hf = norm_hora(m.group(2))
+
+        for d_idx, (sc, ac) in enumerate(_EXCEL_DAY_COLS):
+            sub_cell  = vals[sc] if sc < len(vals) else ''
+            aula_cell = vals[ac] if ac < len(vals) else ''
+            if not sub_cell:
+                continue
+
+            # Subject cell: "SIS 252    J.ZEBALLOS" or "SIS110   J.PORCEL"
+            sm = re.match(r'([A-Z]+\s*\d+)\s+(.+)', sub_cell)
+            if not sm:
+                continue
+            code = re.sub(r'\s+', '', sm.group(1))   # "SIS252"
+            prof = sm.group(2).strip()
+
+            # Aula cell: "GL2 F104" or "GT1  D101" or "G1 C101"
+            am = re.match(r'(G[LT]?\d+)\s+(.*)', aula_cell)
+            if am:
+                seccion = am.group(1)
+                aula    = am.group(2).strip()
+            else:
+                parts   = aula_cell.split(None, 1)
+                seccion = parts[0] if parts else ''
+                aula    = parts[1] if len(parts) > 1 else ''
+
+            dia = _EXCEL_DIAS[d_idx]
+            records.add((carrera, semestre, code, code, seccion, prof, dia, hi, hf, aula))
+
+    print(f"  {len(records):4d} raw  {os.path.basename(xlsx_path)}")
+    return list(records)
+
+
 def main():
     all_records = set()
+
+    # ── 1. Excel sources (authoritative for CIC sem 4 and 5) ─────────────────
+    excel_sems = set()
+    for xls_path, carrera, semestre in _EXCEL_SOURCES:
+        recs = parse_excel_horario(xls_path, carrera, semestre)
+        all_records.update(recs)
+        if recs:
+            excel_sems.add((carrera, semestre))
+
+    # ── 2. CSV sources (all other carrera+semestre combos) ───────────────────
     csv_files = sorted(
         glob.glob('D:/SIS_gid=*.csv') +
         glob.glob('D:/CIC_gid=*.csv') +
@@ -177,9 +261,9 @@ def main():
         glob.glob('D:/DAD_gid=*.csv') +
         glob.glob('D:/CIB_gid=*.csv')
     )
-    # Also include D:/tmp_cic5.csv if present
+    seen = set(excel_sems)   # skip carrera+sem combos already covered by Excel
     for path in csv_files:
-        recs = parse_csv(path)
+        recs = parse_csv(path, seen_override=seen)
         all_records.update(recs)
         print(f"  {len(recs):4d} raw  {path.split('/')[-1]}")
 

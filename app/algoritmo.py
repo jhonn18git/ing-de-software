@@ -308,20 +308,31 @@ def get_horario_clases(carrera: str, semestre: int, db) -> list:
     If only G-type or single-type sections: take all blocks for
     the section with the most matching professor blocks.
     """
-    from app.carreras import get_carreras_buscar
     from collections import defaultdict
 
-    carreras_buscar = get_carreras_buscar(carrera)
-    placeholders = ','.join('?' * len(carreras_buscar))
-
+    # Use exact carrera first to avoid pulling in subjects from related carreras
     rows = db.execute(
-        f'''SELECT materia_codigo, materia_nombre, seccion, profesor,
-                   dia, hora_inicio, hora_fin, aula
-            FROM horarios_usfx
-            WHERE carrera IN ({placeholders}) AND semestre=?
-            ORDER BY materia_codigo, dia, hora_inicio''',
-        (*carreras_buscar, semestre)
+        '''SELECT materia_codigo, materia_nombre, seccion, profesor,
+                  dia, hora_inicio, hora_fin, aula
+           FROM horarios_usfx
+           WHERE carrera=? AND semestre=?
+           ORDER BY materia_codigo, dia, hora_inicio''',
+        (carrera, semestre)
     ).fetchall()
+
+    # Fallback to related carreras only if this carrera has no data at all
+    if not rows:
+        from app.carreras import get_carreras_buscar
+        carreras_buscar = get_carreras_buscar(carrera)
+        placeholders = ','.join('?' * len(carreras_buscar))
+        rows = db.execute(
+            f'''SELECT materia_codigo, materia_nombre, seccion, profesor,
+                       dia, hora_inicio, hora_fin, aula
+                FROM horarios_usfx
+                WHERE carrera IN ({placeholders}) AND semestre=?
+                ORDER BY materia_codigo, dia, hora_inicio''',
+            (*carreras_buscar, semestre)
+        ).fetchall()
 
     if not rows:
         return []
