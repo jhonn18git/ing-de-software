@@ -96,6 +96,9 @@ function mostrarFecha(ts) {
 // ── Tabla semanal ─────────────────────────────────────────────────────────────
 
 function renderGrid(horario) {
+  // DEBUG: verificar que dias usa claves normalizadas (sin tildes, minusculas)
+  console.log('[horario] dias keys:', Object.keys(horario.dias || {}),
+              '| sample lunes slots:', (horario.dias['lunes'] || []).slice(0,2));
   const container = document.getElementById('horario-container');
   const horas = horario.dias['lunes']?.map(s => s.hora) || [];
 

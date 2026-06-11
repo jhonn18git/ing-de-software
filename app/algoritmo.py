@@ -1,9 +1,32 @@
 import json
 import time
+import unicodedata
 from datetime import date, timedelta
 
 DIAS       = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
 _BASE_HORAS = [f'{h:02d}:00' for h in range(7, 22)]  # 07:00 … 21:00 (1h slots)
+
+# Mapa defensivo: cualquier variante de dia → forma canónica (sin tilde, minúscula)
+_DIA_CANON = {}
+for _d in DIAS:
+    _nfd = unicodedata.normalize('NFD', _d)
+    _plain = ''.join(c for c in _nfd if unicodedata.category(c) != 'Mn')
+    _DIA_CANON[_d]         = _d
+    _DIA_CANON[_d.upper()] = _d
+    _DIA_CANON[_d.capitalize()] = _d
+    _DIA_CANON[_plain]     = _d
+    _DIA_CANON[_plain.upper()] = _d
+
+# Casos con tilde que pueden llegar del CSV o de datos viejos
+_DIA_CANON.update({
+    'miércoles': 'miercoles', 'Miércoles': 'miercoles', 'MIÉRCOLES': 'miercoles',
+    'sábado':    'sabado',    'Sábado':    'sabado',    'SÁBADO':    'sabado',
+})
+
+
+def _norm_dia(dia: str) -> str:
+    """Normaliza variantes de día → canónica sin tilde y en minúsculas."""
+    return _DIA_CANON.get(dia, dia.lower().strip())
 
 
 def _hm(t: str) -> int:
@@ -106,11 +129,11 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
                     'bloques':  [],
                     '_seen':    set(),
                 }
-            bloque_key = (r['dia'], r['hora_inicio'])
+            bloque_key = (_norm_dia(r['dia']), r['hora_inicio'])
             if bloque_key not in secciones[sec]['_seen']:
                 secciones[sec]['_seen'].add(bloque_key)
                 secciones[sec]['bloques'].append({
-                    'dia':         r['dia'],
+                    'dia':         _norm_dia(r['dia']),
                     'hora_inicio': r['hora_inicio'],
                     'hora_fin':    r['hora_fin'],
                     'aula':        r['aula'] or '',
@@ -301,13 +324,13 @@ def generar_horario(usuario_id: int, db) -> dict:
                 teo_slots = set()
                 lab_slots = set()
                 for b in entry.get('bloques', []):
-                    key = (b['dia'], b['hora_inicio'])
+                    key = (_norm_dia(b['dia']), b['hora_inicio'])
                     if b.get('bloque_sec', sec) == sec_lab and sec_lab:
                         lab_slots.add(key)
                     else:
                         teo_slots.add(key)
                 for bloque in entry.get('bloques', []):
-                    key = (bloque['dia'], bloque['hora_inicio'])
+                    key = (_norm_dia(bloque['dia']), bloque['hora_inicio'])
                     bs  = bloque.get('bloque_sec', sec)
                     # Show both secciones only when teo AND lab share this exact slot
                     if sec_lab and key in teo_slots and key in lab_slots:
@@ -320,7 +343,7 @@ def generar_horario(usuario_id: int, db) -> dict:
                         disp_sec     = sec
                         disp_sec_lab = ''
                     clases.append({
-                        'dia':            bloque['dia'],
+                        'dia':            _norm_dia(bloque['dia']),
                         'hora_inicio':    bloque['hora_inicio'],
                         'hora_fin':       bloque['hora_fin'],
                         'materia_codigo': entry['materia_codigo'],
@@ -414,7 +437,7 @@ def generar_horario(usuario_id: int, db) -> dict:
                 cod = m['materia_codigo']
                 if pendiente.get(cod, 0) < 0.5:
                     continue
-                if asignadas_dia[dia].get(cod, 0) >= 2:  # max 2 slots/día (~2h)
+                if asignadas_dia[dia].get(cod, 0) >= 1:  # max 1 slot/día → fuerza distribucion semanal
                     continue
                 if consec.get(cod, 0) >= 2:              # max 2 slots consecutivos
                     continue
