@@ -42,11 +42,12 @@
       <div id="alert-box"></div>
       <div id="perfil-actual"></div>
 
-      <div class="card" style="max-width:560px">
+      <div class="card" style="max-width:580px">
         <h3 style="margin-bottom:1.25rem">Configura tu carrera y semestre</h3>
         <p style="color:var(--text-secondary);margin-bottom:1.5rem;font-size:.95rem">
-          El sistema detectará automáticamente tus horas de clase y los ratos libres
-          para generar tu horario de estudio optimizado.
+          El sistema detectará automáticamente las secciones disponibles para cada
+          materia de tu semestre y armará el horario de clases más compacto posible,
+          sin conflictos y minimizando huecos.
         </p>
 
         <div class="wizard-steps" style="margin-bottom:1.5rem">
@@ -58,11 +59,6 @@
           <div class="wizard-step">
             <div class="step-num">2</div>
             <div class="step-label">Semestre</div>
-          </div>
-          <div class="wizard-step-line"></div>
-          <div class="wizard-step">
-            <div class="step-num">3</div>
-            <div class="step-label">Grupo</div>
           </div>
         </div>
 
@@ -78,22 +74,16 @@
             <option value="">— Selecciona carrera primero —</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Grupo</label>
-          <select id="sel-grupo">
-            <option value="">— Selecciona semestre primero —</option>
-          </select>
-        </div>
 
-        <div style="display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap">
+        <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
           <button id="btn-guardar-perfil" class="btn btn-secondary">Guardar Perfil</button>
           <button id="btn-sync" class="btn btn-primary" style="display:none">
-            📚 Cargar mis materias
+            🚀 Generar mi horario de clases
           </button>
         </div>
       </div>
 
-      <div id="preview-materias"></div>
+      <div id="preview-clases"></div>
     </div>
   </main>
 </div>

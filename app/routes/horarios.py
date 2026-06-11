@@ -3,7 +3,6 @@ from flask import Blueprint, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
 from app.algoritmo import generar_horario
-from app.carreras import get_carreras_buscar
 
 horario_bp = Blueprint('horario', __name__)
 
@@ -12,7 +11,7 @@ horario_bp = Blueprint('horario', __name__)
 @require_auth
 def get_horario():
     uid = session['user']['id']
-    db = get_db()
+    db  = get_db()
     row = db.execute(
         'SELECT horario_json, generado_at FROM horario_estudio WHERE usuario_id=?',
         (uid,)
@@ -30,9 +29,8 @@ def get_horario():
 @require_auth
 def generar():
     uid = session['user']['id']
-    db = get_db()
+    db  = get_db()
 
-    # Verificar que tiene materias
     count = db.execute(
         'SELECT COUNT(*) FROM materias_estudiante WHERE usuario_id=?', (uid,)
     ).fetchone()[0]
@@ -40,7 +38,7 @@ def generar():
         db.close()
         return jsonify({'error': 'No tienes materias registradas. Sincroniza desde tu perfil.'}), 400
 
-    horario = generar_horario(uid, db)
+    horario     = generar_horario(uid, db)
     horario_str = json.dumps(horario, ensure_ascii=False)
 
     existing = db.execute(
@@ -68,26 +66,28 @@ def generar():
 @horario_bp.route('/api/horario/clases', methods=['GET'])
 @require_auth
 def get_clases():
-    """Devuelve las clases USFX del usuario según su perfil académico."""
+    """Devuelve el horario de clases armado del usuario (desde horario_clases_usuario)."""
     uid = session['user']['id']
-    db = get_db()
-    perfil = db.execute(
-        'SELECT carrera, semestre, grupo FROM perfil_academico WHERE usuario_id=?',
+    db  = get_db()
+    row = db.execute(
+        'SELECT horario_json, generado_at FROM horario_clases_usuario WHERE usuario_id=?',
         (uid,)
     ).fetchone()
-    if not perfil:
-        db.close()
-        return jsonify({'clases': [], 'perfil': None}), 200
-
-    carreras_buscar = get_carreras_buscar(perfil['carrera'])
-    placeholders = ','.join('?' * len(carreras_buscar))
-
-    rows = db.execute(
-        f'''SELECT dia, hora_inicio, hora_fin, materia_codigo, materia_nombre, aula
-           FROM horarios_usfx
-           WHERE carrera IN ({placeholders}) AND semestre=? AND grupo=?
-           ORDER BY dia, hora_inicio''',
-        (*carreras_buscar, perfil['semestre'], perfil['grupo'])
-    ).fetchall()
+    perfil = db.execute(
+        'SELECT carrera, semestre FROM perfil_academico WHERE usuario_id=?', (uid,)
+    ).fetchone()
     db.close()
-    return jsonify({'clases': [dict(r) for r in rows], 'perfil': dict(perfil)}), 200
+
+    if not row:
+        return jsonify({'clases': [], 'perfil': dict(perfil) if perfil else None}), 200
+
+    try:
+        clases = json.loads(row['horario_json'])
+    except Exception:
+        clases = []
+
+    return jsonify({
+        'clases':      clases,
+        'perfil':      dict(perfil) if perfil else None,
+        'generado_at': row['generado_at'],
+    }), 200

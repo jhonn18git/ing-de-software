@@ -15,17 +15,60 @@ def get_db():
     return conn
 
 
+def _migrate_horarios_usfx(conn):
+    """
+    Migra horarios_usfx al nuevo esquema si aún tiene el esquema viejo
+    (columna 'grupo' sin columna 'seccion').
+    """
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(horarios_usfx)").fetchall()]
+    if 'seccion' in cols:
+        return  # Ya tiene el esquema nuevo
+
+    logger.info("Migrando horarios_usfx al nuevo esquema (seccion, profesor)…")
+    conn.execute("DROP TABLE IF EXISTS horarios_usfx")
+    conn.commit()
+
+
+def _migrate_perfil_academico(conn):
+    """
+    Si perfil_academico tiene 'grupo' con NOT NULL, lo recrea con grupo opcional.
+    """
+    cols_info = conn.execute("PRAGMA table_info(perfil_academico)").fetchall()
+    if not cols_info:
+        return  # No existe aún
+    grupo_info = next((r for r in cols_info if r[1] == 'grupo'), None)
+    if not grupo_info or grupo_info[3] == 0:  # notnull == 0 → ya es nullable
+        return
+
+    logger.info("Migrando perfil_academico para hacer grupo opcional…")
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS perfil_academico_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL UNIQUE,
+            carrera TEXT NOT NULL,
+            semestre INTEGER NOT NULL,
+            grupo TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+    conn.execute('''
+        INSERT OR IGNORE INTO perfil_academico_new
+            (id, usuario_id, carrera, semestre, grupo)
+        SELECT id, usuario_id, carrera, semestre, COALESCE(grupo, '')
+        FROM perfil_academico
+    ''')
+    conn.execute("DROP TABLE perfil_academico")
+    conn.execute("ALTER TABLE perfil_academico_new RENAME TO perfil_academico")
+    conn.commit()
+
+
 def init_db():
     conn = get_db()
     c = conn.cursor()
 
-    # TEMP: forzar recarga del seed con datos CIC semestres 2-10.
-    # Quitar este bloque después de confirmar que funciona en Render.
-    try:
-        conn.execute("DELETE FROM horarios_usfx")
-        conn.commit()
-    except Exception:
-        pass
+    # Migraciones de esquema (idempotentes)
+    _migrate_horarios_usfx(conn)
+    _migrate_perfil_academico(conn)
 
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -46,14 +89,21 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             carrera TEXT NOT NULL,
             semestre INTEGER NOT NULL,
-            grupo TEXT NOT NULL,
+            materia_codigo TEXT NOT NULL,
+            materia_nombre TEXT,
+            seccion TEXT NOT NULL,
+            profesor TEXT,
             dia TEXT NOT NULL,
             hora_inicio TEXT NOT NULL,
             hora_fin TEXT NOT NULL,
-            materia_codigo TEXT NOT NULL,
-            materia_nombre TEXT,
-            aula TEXT
+            aula TEXT,
+            UNIQUE(carrera, semestre, materia_codigo, seccion, dia, hora_inicio)
         )
+    ''')
+
+    c.execute('''
+        CREATE INDEX IF NOT EXISTS idx_horarios_carrera_sem
+        ON horarios_usfx(carrera, semestre)
     ''')
 
     c.execute('''
@@ -62,7 +112,7 @@ def init_db():
             usuario_id INTEGER NOT NULL UNIQUE,
             carrera TEXT NOT NULL,
             semestre INTEGER NOT NULL,
-            grupo TEXT NOT NULL,
+            grupo TEXT NOT NULL DEFAULT '',
             FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
         )
     ''')
@@ -78,6 +128,16 @@ def init_db():
             color TEXT DEFAULT '#3182ce',
             FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE,
             UNIQUE(usuario_id, materia_codigo)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS horario_clases_usuario (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL UNIQUE,
+            horario_json TEXT NOT NULL,
+            generado_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
         )
     ''')
 
@@ -110,7 +170,7 @@ def init_db():
         )
     ''')
 
-    # Seed inicial
+    # Seed inicial de usuarios
     count = c.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     if count == 0:
         seed_users = [

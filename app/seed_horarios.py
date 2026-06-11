@@ -2617,12 +2617,36 @@ def seed_horarios(conn):
     if count > 0:
         print(f"Seed horarios: ya existen {count} registros, omitiendo")
         return
+
+    # Transformar del esquema viejo (grupo/aula-como-sección) al nuevo (seccion, profesor, aula)
+    seen = set()
+    transformed = []
+    for r in HORARIOS_USFX:
+        seccion = r.get('aula', '')   # 'aula' en el seed viejo es en realidad el código de sección
+        key = (r['carrera'], r['semestre'], r['materia_codigo'],
+               seccion, r['dia'], r['hora_inicio'])
+        if key in seen:
+            continue
+        seen.add(key)
+        transformed.append({
+            'carrera':        r['carrera'],
+            'semestre':       r['semestre'],
+            'materia_codigo': r['materia_codigo'],
+            'materia_nombre': r.get('materia_nombre', ''),
+            'seccion':        seccion,
+            'profesor':       '',
+            'dia':            r['dia'],
+            'hora_inicio':    r['hora_inicio'],
+            'hora_fin':       r['hora_fin'],
+            'aula':           '',
+        })
+
     cur.executemany("""
-        INSERT INTO horarios_usfx
-            (carrera, semestre, grupo, dia, hora_inicio, hora_fin,
-             materia_codigo, materia_nombre, aula)
-        VALUES (:carrera, :semestre, :grupo, :dia, :hora_inicio, :hora_fin,
-                :materia_codigo, :materia_nombre, :aula)
-    """, HORARIOS_USFX)
+        INSERT OR IGNORE INTO horarios_usfx
+            (carrera, semestre, materia_codigo, materia_nombre, seccion, profesor,
+             dia, hora_inicio, hora_fin, aula)
+        VALUES (:carrera, :semestre, :materia_codigo, :materia_nombre, :seccion, :profesor,
+                :dia, :hora_inicio, :hora_fin, :aula)
+    """, transformed)
     conn.commit()
-    print(f"Seed horarios: {len(HORARIOS_USFX)} registros insertados")
+    print(f"Seed horarios: {len(transformed)} registros únicos (de {len(HORARIOS_USFX)} originales)")

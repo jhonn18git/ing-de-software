@@ -47,7 +47,6 @@ async function checkPerfil() {
       <div class="alert alert-info">
         Perfil: <strong>${escHtml(res.perfil.carrera)}</strong>
         — Semestre ${escHtml(String(res.perfil.semestre))}
-        — Grupo ${escHtml(res.perfil.grupo)}
         — ${mats.length} materias
       </div>`;
   } catch (_) {}
@@ -124,10 +123,11 @@ function renderGrid(horario) {
 
 function renderSlot(slot) {
   if (slot.tipo === 'clase') {
-    return `<td class="slot-clase" title="${escHtml(slot.nombre)} — ${escHtml(slot.aula)}">
+    const detalle = [slot.seccion, slot.aula, slot.profesor].filter(Boolean).join(' · ');
+    return `<td class="slot-clase" title="${escHtml(slot.nombre)}${detalle ? ' — ' + detalle : ''}">
       <div class="slot-inner">
         <strong>${escHtml(slot.codigo)}</strong>
-        <small>${escHtml(slot.aula)}</small>
+        <small>${escHtml(slot.seccion || slot.aula || '')}</small>
       </div>
     </td>`;
   }

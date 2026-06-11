@@ -15,18 +15,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function cargarPerfil() {
   try {
     const res = await api.get('/perfil');
-    if (res.perfil) {
-      mostrarPerfilActual(res.perfil);
-    }
+    if (res.perfil) mostrarPerfilActual(res.perfil);
   } catch (_) {}
 }
 
 function mostrarPerfilActual(p) {
-  const box = document.getElementById('perfil-actual');
-  box.innerHTML = `
+  document.getElementById('perfil-actual').innerHTML = `
     <div class="alert alert-info" style="margin-bottom:1rem">
       <strong>Perfil actual:</strong>
-      ${escHtml(p.carrera)} — Semestre ${escHtml(String(p.semestre))} — Grupo ${escHtml(p.grupo)}
+      ${escHtml(p.carrera)} — Semestre ${escHtml(String(p.semestre))}
     </div>`;
 }
 
@@ -34,24 +31,24 @@ async function cargarCarreras() {
   try {
     const carreras = await api.get('/perfil/carreras');
     const sel = document.getElementById('sel-carrera');
-    if (carreras.length === 0) {
-      sel.innerHTML = '<option value="">— Sin datos USFX cargados —</option>';
+    if (!carreras.length) {
+      sel.innerHTML = '<option value="">— Sin datos —</option>';
       return;
     }
     sel.innerHTML = '<option value="">Selecciona una carrera…</option>' +
       carreras.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
   } catch (err) {
-    showAlert('#alert-box', 'No se pudo cargar la lista de carreras: ' + err.message, 'error');
+    showAlert('#alert-box', 'No se pudo cargar carreras: ' + err.message, 'error');
   }
 }
 
 async function onCarreraChange() {
   const carrera = document.getElementById('sel-carrera').value;
   const selSem  = document.getElementById('sel-semestre');
-  const selGrp  = document.getElementById('sel-grupo');
   selSem.innerHTML = '<option value="">Cargando…</option>';
-  selGrp.innerHTML = '<option value="">—</option>';
   document.getElementById('btn-sync').style.display = 'none';
+  document.getElementById('preview-clases').innerHTML = '';
+
   if (!carrera) { selSem.innerHTML = '<option value="">—</option>'; return; }
 
   try {
@@ -63,101 +60,99 @@ async function onCarreraChange() {
   }
 }
 
-async function onSemestreChange() {
-  const carrera  = document.getElementById('sel-carrera').value;
-  const semestre = document.getElementById('sel-semestre').value;
-  const selGrp   = document.getElementById('sel-grupo');
-  selGrp.innerHTML = '<option value="">Cargando…</option>';
-  document.getElementById('btn-sync').style.display = 'none';
-  if (!semestre) { selGrp.innerHTML = '<option value="">—</option>'; return; }
-
-  try {
-    const grupos = await api.get(
-      '/perfil/grupos?carrera=' + encodeURIComponent(carrera) +
-      '&semestre=' + encodeURIComponent(semestre)
-    );
-    selGrp.innerHTML = '<option value="">Selecciona grupo…</option>' +
-      grupos.map(g => `<option value="${g}">Grupo ${escHtml(g)}</option>`).join('');
-    selGrp.addEventListener('change', () => {
-      document.getElementById('btn-sync').style.display =
-        selGrp.value ? 'inline-flex' : 'none';
-    }, { once: false });
-  } catch (err) {
-    selGrp.innerHTML = '<option value="">Error</option>';
-  }
+function onSemestreChange() {
+  const sem = document.getElementById('sel-semestre').value;
+  document.getElementById('btn-sync').style.display = sem ? 'inline-flex' : 'none';
 }
 
 async function guardarPerfil() {
   const carrera  = document.getElementById('sel-carrera').value;
   const semestre = document.getElementById('sel-semestre').value;
-  const grupo    = document.getElementById('sel-grupo').value;
-
-  if (!carrera || !semestre || !grupo) {
-    showAlert('#alert-box', 'Selecciona carrera, semestre y grupo', 'error');
-    return;
+  if (!carrera || !semestre) {
+    showAlert('#alert-box', 'Selecciona carrera y semestre', 'error');
+    return false;
   }
-
   try {
-    await api.post('/perfil', { carrera, semestre: Number(semestre), grupo });
-    showAlert('#alert-box', 'Perfil guardado correctamente', 'success');
-    mostrarPerfilActual({ carrera, semestre, grupo });
+    await api.post('/perfil', { carrera, semestre: Number(semestre) });
+    showAlert('#alert-box', 'Perfil guardado', 'success');
+    mostrarPerfilActual({ carrera, semestre });
+    return true;
   } catch (err) {
     showAlert('#alert-box', err.message, 'error');
+    return false;
   }
 }
 
 async function sincronizarMaterias() {
   const btn = document.getElementById('btn-sync');
-  btn.textContent = 'Sincronizando…';
+  btn.textContent = '⏳ Armando horario…';
   btn.disabled = true;
 
-  // Primero guardar el perfil seleccionado
-  await guardarPerfil();
+  const ok = await guardarPerfil();
+  if (!ok) { btn.textContent = '🚀 Generar mi horario de clases'; btn.disabled = false; return; }
 
   try {
     const res = await api.post('/materias/sync', {});
     showAlert('#alert-box',
-      `✓ Materias sincronizadas: ${res.insertadas} nuevas (total ${res.materias.length})`,
-      'success'
-    );
-    renderPreviewMaterias(res.materias);
+      `✓ ${res.insertadas} materias nuevas. Horario de clases armado.`, 'success');
+    renderPreviewClases(res.horario_clases || []);
   } catch (err) {
     showAlert('#alert-box', err.message, 'error');
   } finally {
-    btn.textContent = '📚 Cargar mis materias';
+    btn.textContent = '🚀 Generar mi horario de clases';
     btn.disabled = false;
   }
 }
 
-function renderPreviewMaterias(materias) {
-  const box = document.getElementById('preview-materias');
-  if (!materias.length) {
-    box.innerHTML = '';
-    return;
-  }
+const DIAS_LABEL = {
+  lunes: 'Lun', martes: 'Mar', miercoles: 'Mié',
+  jueves: 'Jue', viernes: 'Vie', sabado: 'Sáb',
+};
+
+function renderPreviewClases(clases) {
+  const box = document.getElementById('preview-clases');
+  if (!clases.length) { box.innerHTML = ''; return; }
+
+  const filas = clases.map(m => {
+    const dias = {};
+    for (const b of (m.bloques || [])) {
+      const d = DIAS_LABEL[b.dia] || b.dia;
+      if (!dias[d]) dias[d] = [];
+      dias[d].push(`${b.hora_inicio}–${b.hora_fin}`);
+    }
+    const horario = Object.entries(dias)
+      .map(([d, hs]) => `<span style="color:var(--accent-secondary)">${d}</span> ${hs.join(', ')}`)
+      .join(' &nbsp;|&nbsp; ') || '<span style="color:var(--text-secondary)">Sin horario</span>';
+
+    return `<tr>
+      <td><strong>${escHtml(m.materia_codigo)}</strong></td>
+      <td>${escHtml(m.materia_nombre || m.materia_codigo)}</td>
+      <td><span class="badge badge-admin">${escHtml(m.seccion || '—')}</span></td>
+      <td style="font-size:.82rem;color:var(--text-secondary)">${escHtml(m.profesor || '—')}</td>
+      <td style="font-size:.82rem">${horario}</td>
+    </tr>`;
+  }).join('');
+
   box.innerHTML = `
     <div class="card" style="margin-top:1.5rem">
-      <h3 style="margin-bottom:1rem">Materias cargadas (${materias.length})</h3>
+      <div class="card-header">
+        <h3>Horario de clases armado (${clases.length} materias)</h3>
+        <a href="/horario/index.html" class="btn btn-primary btn-sm">Ver horario completo →</a>
+      </div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Código</th><th>Materia</th><th>Dificultad</th><th>Horas/sem</th></tr></thead>
-          <tbody>
-            ${materias.map(m => `
-              <tr>
-                <td><strong>${escHtml(m.materia_codigo)}</strong></td>
-                <td>${escHtml(m.materia_nombre)}</td>
-                <td>${renderStars(m.dificultad)}</td>
-                <td>${escHtml(String(m.horas_semana))}h</td>
-              </tr>`).join('')}
-          </tbody>
+          <thead>
+            <tr>
+              <th>Código</th><th>Materia</th><th>Sección</th>
+              <th>Profesor</th><th>Horario</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
         </table>
       </div>
-      <div style="margin-top:1rem">
-        <a href="/materias/index.html" class="btn btn-primary">Ir a Mis Materias →</a>
-      </div>
+      <p style="margin-top:1rem;color:var(--text-secondary);font-size:.85rem">
+        💡 El sistema eligió las secciones sin conflictos y con la menor cantidad de huecos.
+        Ve a <a href="/materias/index.html">Mis Materias</a> para ajustar dificultad y horas de estudio.
+      </p>
     </div>`;
-}
-
-function renderStars(n) {
-  return `<span class="stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span>`;
 }
