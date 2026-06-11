@@ -296,6 +296,172 @@ def armar_horario_clases(carrera: str, semestre: int, db) -> list:
 
 
 # -----------------------------------------------------------------------
+# HORARIO DE CLASES FIJO POR CARRERA+SEMESTRE (sin backtracking)
+# -----------------------------------------------------------------------
+
+def get_horario_clases(carrera: str, semestre: int, db) -> list:
+    """
+    Returns fixed class schedule for carrera+semestre.
+    Groups DB rows by materia_codigo, returns blocks as-is.
+    For each materia: if GL* and GT* sections exist with same professor,
+    pick FIRST GL (by day order) + matching GT.
+    If only G-type or single-type sections: take all blocks for
+    the section with the most matching professor blocks.
+    """
+    from app.carreras import get_carreras_buscar
+    from collections import defaultdict
+
+    carreras_buscar = get_carreras_buscar(carrera)
+    placeholders = ','.join('?' * len(carreras_buscar))
+
+    rows = db.execute(
+        f'''SELECT materia_codigo, materia_nombre, seccion, profesor,
+                   dia, hora_inicio, hora_fin, aula
+            FROM horarios_usfx
+            WHERE carrera IN ({placeholders}) AND semestre=?
+            ORDER BY materia_codigo, dia, hora_inicio''',
+        (*carreras_buscar, semestre)
+    ).fetchall()
+
+    if not rows:
+        return []
+
+    # Group by materia
+    mat_secs = defaultdict(lambda: defaultdict(list))  # {codigo: {seccion: [blocks]}}
+    mat_names = {}
+    mat_profs = {}
+
+    DAY_ORDER = {d: i for i, d in enumerate(DIAS)}
+
+    for r in rows:
+        cod = r['materia_codigo']
+        sec = r['seccion']
+        mat_names[cod] = r['materia_nombre'] or cod
+        mat_profs.setdefault(cod, {})
+        mat_profs[cod][sec] = r['profesor'] or ''
+        mat_secs[cod][sec].append({
+            'dia': _norm_dia(r['dia']),
+            'hora_inicio': r['hora_inicio'],
+            'hora_fin': r['hora_fin'],
+            'aula': r['aula'] or '',
+        })
+
+    result = []
+
+    for cod, secciones in mat_secs.items():
+        gl_secs = {s: blks for s, blks in secciones.items()
+                   if s.upper().startswith('GL')}
+        gt_secs = {s: blks for s, blks in secciones.items()
+                   if s.upper().startswith('GT')}
+        g_secs  = {s: blks for s, blks in secciones.items()
+                   if not s.upper().startswith('GL') and not s.upper().startswith('GT')}
+
+        chosen_secs = {}
+
+        if gl_secs and gt_secs:
+            # Find GL+GT pairs with same professor; prefer lowest-numbered GL section
+            paired = {}
+            for sg in sorted(gl_secs.keys()):
+                bg = gl_secs[sg]
+                prof_g = mat_profs[cod].get(sg, '')
+                for st in sorted(gt_secs.keys()):
+                    prof_t = mat_profs[cod].get(st, '')
+                    if prof_g and prof_t and prof_g.split('.')[0] == prof_t.split('.')[0]:
+                        # Same professor - valid pair; first match wins (sorted order)
+                        if sg not in paired:
+                            paired[sg] = (sg, st)
+
+            if paired:
+                # Pick the pair with the lowest-numbered GL section
+                best_gl = sorted(paired.keys())[0]
+                best = paired[best_gl]
+                chosen_secs[best[0]] = gl_secs[best[0]]
+                chosen_secs[best[1]] = gt_secs[best[1]]
+            else:
+                # No same-prof pair, pick first GL + first GT by seccion name
+                first_gl = sorted(gl_secs.keys())[0]
+                first_gt = sorted(gt_secs.keys())[0]
+                chosen_secs[first_gl] = gl_secs[first_gl]
+                chosen_secs[first_gt] = gt_secs[first_gt]
+
+        elif gl_secs:
+            # Only GL sections: pick first by seccion name
+            first_gl = sorted(gl_secs.keys())[0]
+            chosen_secs[first_gl] = gl_secs[first_gl]
+
+        elif g_secs and gt_secs:
+            # G-type + GT-type: treat as teo/lab pair if same professor
+            # (handles G1 + GT1 with same prof, like SIS256)
+            paired_g = {}
+            for sg in sorted(g_secs.keys()):
+                prof_g = mat_profs[cod].get(sg, '')
+                for st in sorted(gt_secs.keys()):
+                    prof_t = mat_profs[cod].get(st, '')
+                    if prof_g and prof_t and prof_g.split('.')[0] == prof_t.split('.')[0]:
+                        if sg not in paired_g:
+                            paired_g[sg] = (sg, st)
+
+            if paired_g:
+                best_g = sorted(paired_g.keys())[0]
+                best = paired_g[best_g]
+                chosen_secs[best[0]] = g_secs[best[0]]
+                chosen_secs[best[1]] = gt_secs[best[1]]
+            else:
+                # No same-prof pair, pick first G + first GT
+                first_g = sorted(g_secs.keys())[0]
+                first_gt = sorted(gt_secs.keys())[0]
+                chosen_secs[first_g] = g_secs[first_g]
+                chosen_secs[first_gt] = gt_secs[first_gt]
+
+        elif g_secs:
+            # G-type sections only: group by seccion, pick the seccion that appears most days
+            # (handles G1 appearing Tue+Wed for SIS315)
+            for sec, blks in sorted(g_secs.items()):
+                chosen_secs[sec] = blks
+            # If multiple G secs, keep only those with same professor as most common
+            if len(chosen_secs) > 1:
+                # Find professor with most blocks
+                prof_count = defaultdict(int)
+                for sec, blks in chosen_secs.items():
+                    prof_count[mat_profs[cod].get(sec, '')] += len(blks)
+                top_prof = max(prof_count, key=prof_count.get)
+                chosen_secs = {s: b for s, b in chosen_secs.items()
+                               if mat_profs[cod].get(s, '') == top_prof}
+
+        else:
+            # GT only (rare) - pick first
+            if gt_secs:
+                first_gt = sorted(gt_secs.keys())[0]
+                chosen_secs[first_gt] = gt_secs[first_gt]
+
+        # Flatten chosen sections into blocks list
+        all_blocks = []
+        seen_keys = set()
+        # Determine display seccion/seccion_lab
+        sec_list = sorted(chosen_secs.keys())
+        main_sec = sec_list[0] if sec_list else ''
+        sec_lab  = sec_list[1] if len(sec_list) > 1 else ''
+
+        for sec, blks in chosen_secs.items():
+            for b in blks:
+                key = (b['dia'], b['hora_inicio'])
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_blocks.append(dict(b, bloque_sec=sec))
+
+        result.append({
+            'materia_codigo': cod,
+            'materia_nombre': mat_names[cod],
+            'seccion':     main_sec,
+            'seccion_lab': sec_lab,
+            'profesor':    mat_profs[cod].get(main_sec, ''),
+            'bloques':     all_blocks,
+        })
+
+    return result
+
+
+# -----------------------------------------------------------------------
 # GENERACION DE HORARIO DE ESTUDIO
 # -----------------------------------------------------------------------
 

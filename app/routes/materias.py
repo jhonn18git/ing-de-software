@@ -2,7 +2,7 @@ import json
 from flask import Blueprint, request, session, jsonify
 from app.database import get_db
 from app.middleware import require_auth
-from app.algoritmo import armar_horario_clases
+from app.algoritmo import get_horario_clases
 
 materias_bp = Blueprint('materias', __name__)
 
@@ -47,8 +47,8 @@ def sync_materias():
     carrera  = perfil['carrera']
     semestre = perfil['semestre']
 
-    # ── 1. Armar horario de clases con backtracking ───────────────────────────
-    horario_clases = armar_horario_clases(carrera, semestre, db)
+    # ── 1. Obtener horario de clases fijo por carrera+semestre ───────────────
+    horario_clases = get_horario_clases(carrera, semestre, db)
 
     if not horario_clases:
         db.close()

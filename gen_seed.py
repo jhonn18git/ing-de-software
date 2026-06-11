@@ -65,6 +65,8 @@ def parse_csv(path: str) -> list:
     current_car  = None   # canonical
     skip_group   = False
 
+    seen = set()   # (carrera_canon, semestre) already processed from a previous CARRERA: block
+
     i = 0
     while i < len(rows):
         row = rows[i]
@@ -93,7 +95,18 @@ def parse_csv(path: str) -> list:
             # Also skip multi-carrera entries like "SIS, CIC, TIS, TEL"
             raw_car_up = raw_car.upper()
             is_multi = ',' in raw_car_up and len(raw_car_up) < 40
-            skip_group = (not has_2026) or is_multi or (current_car is None)
+
+            if (not has_2026) or is_multi or (current_car is None):
+                skip_group = True
+            else:
+                # Only take the FIRST grupo encountered per (carrera_canon, semestre)
+                key = (current_car, current_sem)
+                if key in seen:
+                    skip_group = True
+                else:
+                    seen.add(key)
+                    skip_group = False
+
             i += 1
             continue
 
