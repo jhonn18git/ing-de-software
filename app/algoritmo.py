@@ -2,18 +2,23 @@ import json
 import time
 from datetime import date, timedelta
 
-DIAS  = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
-HORAS = [
-    f'{h:02d}:{m:02d}'
-    for h in range(7, 22)
-    for m in (0, 30)
-]  # 07:00, 07:30, 08:00, … 21:30
+DIAS       = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
+_BASE_HORAS = [f'{h:02d}:00' for h in range(7, 22)]  # 07:00 … 21:00 (1h slots)
 
 
 def _hm(t: str) -> int:
     """Convert 'HH:MM' → total minutes since midnight."""
     h, m = t.split(':')
     return int(h) * 60 + int(m)
+
+
+def _build_horas(clases: list) -> list:
+    """1h grid + extra :30 rows only for classes that start at :30."""
+    extra = {c['hora_inicio'] for c in clases if c['hora_inicio'].endswith(':30')}
+    return sorted(set(_BASE_HORAS) | extra)
+
+
+HORAS = _BASE_HORAS  # default (no classes loaded yet)
 
 
 def _lunes_semana() -> str:
@@ -345,20 +350,21 @@ def generar_horario(usuario_id: int, db) -> dict:
         (usuario_id, str(hoy), str(limite))
     ).fetchall()]
 
-    # 4. Grilla vacia
+    # 4. Grilla: 1h base + filas :30 extra solo si hay clases que empiezan a :30
+    horas_grilla = _build_horas(clases)
     grilla: dict[str, dict[str, dict]] = {
-        dia: {hora: {'hora': hora, 'tipo': 'libre'} for hora in HORAS}
+        dia: {hora: {'hora': hora, 'tipo': 'libre'} for hora in horas_grilla}
         for dia in DIAS
     }
 
-    # 5. Marcar clases (usa comparación de strings HH:MM, funciona correctamente)
+    # 5. Marcar clases — bloque completo (p.ej. 07:00-09:00) pinta cada fila cubierta
     for clase in clases:
         dia = clase['dia']
         if dia not in grilla:
             continue
         hi = clase['hora_inicio']
         hf = clase['hora_fin']
-        for h in HORAS:
+        for h in horas_grilla:
             if hi <= h < hf:
                 grilla[dia][h] = {
                     'hora':       h,
@@ -392,12 +398,12 @@ def generar_horario(usuario_id: int, db) -> dict:
     materias_sorted = sorted(materias, key=lambda m: m['dificultad'], reverse=True)
     pendiente       = dict(horas_obj)
 
-    # 7. Asignar bloques de estudio
+    # 7. Asignar bloques de estudio (itera solo sobre la grilla dinámica)
     asignadas_dia: dict[str, dict[str, float]] = {d: {} for d in DIAS}
 
     for dia in DIAS:
         consec: dict[str, int] = {}
-        for hora in HORAS:
+        for hora in horas_grilla:
             slot = grilla[dia][hora]
             if slot['tipo'] != 'libre':
                 consec = {}
@@ -406,11 +412,11 @@ def generar_horario(usuario_id: int, db) -> dict:
             elegida = None
             for m in materias_sorted:
                 cod = m['materia_codigo']
-                if pendiente.get(cod, 0) < 0.25:
+                if pendiente.get(cod, 0) < 0.5:
                     continue
-                if asignadas_dia[dia].get(cod, 0) >= 4:  # max 2h/día
+                if asignadas_dia[dia].get(cod, 0) >= 2:  # max 2 slots/día (~2h)
                     continue
-                if consec.get(cod, 0) >= 4:              # max 2h consecutivas
+                if consec.get(cod, 0) >= 2:              # max 2 slots consecutivos
                     continue
                 elegida = m
                 break
@@ -426,7 +432,7 @@ def generar_horario(usuario_id: int, db) -> dict:
                 'nombre': elegida['materia_nombre'],
                 'color':  elegida.get('color', '#3182ce'),
             }
-            pendiente[cod] = max(0.0, pendiente[cod] - 0.5)
+            pendiente[cod] = max(0.0, pendiente[cod] - 1.0)
             asignadas_dia[dia][cod] = asignadas_dia[dia].get(cod, 0) + 1
             for other in list(consec):
                 if other != cod:
@@ -451,5 +457,5 @@ def generar_horario(usuario_id: int, db) -> dict:
 
 
 def _horario_vacio() -> dict:
-    dias_json = {dia: [{'hora': h, 'tipo': 'libre'} for h in HORAS] for dia in DIAS}
+    dias_json = {dia: [{'hora': h, 'tipo': 'libre'} for h in _BASE_HORAS] for dia in DIAS}
     return {'semana': _lunes_semana(), 'dias': dias_json, 'resumen': {}}
