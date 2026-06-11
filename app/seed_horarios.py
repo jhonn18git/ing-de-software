@@ -4,6 +4,10 @@ logger = logging.getLogger(__name__)
 
 
 def seed_horarios(conn):
+    # Elimina bloques CIC sem 4 y 5 para garantizar reinserccion exacta
+    conn.execute("DELETE FROM horarios_usfx WHERE carrera='Ingeniería en Ciencias de la Computación' AND semestre IN (4,5)")
+    conn.commit()
+
     rows = [
         ('Ing. Diseño y Automatización Digital', 1, 'COM100', 'COM100', 'GL7', 'G. POQUECHOQUE', 'jueves', '11:00', '13:00', 'F302'),
         ('Ing. Diseño y Automatización Digital', 1, 'COM100', 'COM100', 'GL7', 'G. POQUECHOQUE', 'lunes', '11:00', '13:00', 'F302'),
@@ -366,29 +370,6 @@ def seed_horarios(conn):
         ('Ingeniería en Ciencias de la Computación', 3, 'SIS302', 'SIS302', 'GL2', 'E. ESPINOZA', 'viernes', '09:00', '11:00', 'B201'),
         ('Ingeniería en Ciencias de la Computación', 3, 'SIS302', 'SIS302', 'GL6', 'M.ARANCIBIA', 'miercoles', '09:00', '11:00', 'B206'),
         ('Ingeniería en Ciencias de la Computación', 3, 'SIS302', 'SIS302', 'GT2', 'E. ESPINOZA', 'jueves', '07:00', '09:00', 'C101'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS110', 'SIS110', 'GL1', 'J.PORCEL', 'martes', '07:00', '09:00', 'F305'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS110', 'SIS110', 'GT1', 'J.PORCEL', 'miercoles', '18:30', '20:30', 'B006'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS120', 'SIS120', 'G1', 'V.Belianskaya', 'miercoles', '09:00', '11:00', 'D002'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS120', 'SIS120', 'G1', 'V.Belianskaya', 'viernes', '09:00', '11:00', 'B206'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS125', 'SIS125', 'G1', 'G.Poquechoque', 'miercoles', '16:00', '18:00', 'F302'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS125', 'SIS125', 'G1', 'G.Poquechoque', 'viernes', '16:00', '18:00', 'F302'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS251', 'SIS251', 'GL2', 'S.UGRINOVIC', 'jueves', '18:30', '20:30', 'E403'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS251', 'SIS251', 'GT1', 'S.UGRINOVIC', 'martes', '18:30', '20:30', 'E403'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS304', 'SIS304', 'GL1', 'R.VILLAFAN', 'martes', '09:00', '11:00', 'F202'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS304', 'SIS304', 'GT1', 'R.VILLAFAN', 'jueves', '09:00', '11:00', 'E103'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS407', 'SIS407', 'G1', 'G.Poquechoque', 'jueves', '16:00', '18:00', 'B205'),
-        ('Ingeniería en Ciencias de la Computación', 4, 'SIS407', 'SIS407', 'G1', 'G.POQUECHOQUE', 'lunes', '09:00', '11:00', 'B206'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS252', 'SIS252', 'GL2', 'J.ZEBALLOS', 'lunes', '07:00', '09:00', 'F104'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS252', 'SIS252', 'GT2', 'J.ZEBALLOS', 'miercoles', '07:00', '09:00', 'D001'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS256', 'SIS256', 'GL1', 'C.MONTELLANO', 'lunes', '16:00', '18:00', 'B205'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS256', 'SIS256', 'GT1', 'C.MONTELLANO', 'miercoles', '16:00', '18:00', 'B206'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS313', 'SIS313', 'GL1', 'M.QUISPE', 'martes', '14:00', '16:00', 'CS05'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS315', 'SIS315', 'G1', 'R.QUISPE', 'martes', '18:30', '20:30', 'C101'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS315', 'SIS315', 'G1', 'R.QUISPE', 'miercoles', '18:30', '20:30', 'C201'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS324', 'SIS324', 'GL1', 'R.DURAN', 'lunes', '09:00', '11:00', 'F305'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS324', 'SIS324', 'GT1', 'R.DURAN', 'viernes', '09:00', '11:00', 'C204'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS420', 'SIS420', 'GL1', 'W.PACHECO', 'miercoles', '11:00', '13:00', 'B006'),
-        ('Ingeniería en Ciencias de la Computación', 5, 'SIS420', 'SIS420', 'GT1', 'W.PACHECO', 'martes', '11:00', '13:00', 'D101'),
         ('Ingeniería en Ciencias de la Computación', 6, 'COM350', 'COM350', 'G1', 'C.MONTELLANO', 'martes', '11:00', '13:00', 'E102'),
         ('Ingeniería en Ciencias de la Computación', 6, 'COM350', 'COM350', 'G1', 'C.MONTELLANO', 'miercoles', '09:00', '11:00', 'E102'),
         ('Ingeniería en Ciencias de la Computación', 6, 'COM460', 'COM460', 'GL1', 'M. ARANCIBIA', 'martes', '14:00', '16:00', 'A210'),
@@ -515,6 +496,28 @@ def seed_horarios(conn):
         ('Ingeniería en Tecnologías de la Información y Seguridad', 10, 'SHC190', 'SHC190', 'G4', 'J.ZEBALLOS', 'martes', '11:00', '13:00', 'F102'),
         ('Ingeniería en Tecnologías de la Información y Seguridad', 10, 'SHC190', 'SHC190', 'G4', 'J.ZEBALLOS', 'miercoles', '09:00', '11:00', 'C106'),
         ('Ingeniería en Tecnologías de la Información y Seguridad', 10, 'SHC190', 'SHC190', 'G4', 'J.ZEBALLOS', 'viernes', '09:00', '11:00', 'F201'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS252', 'Redes de Datos II', 'GL2', 'J.ZEBALLOS', 'lunes', '07:00', '09:00', 'F104'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS324', 'Ingeniería de Software', 'GL1', 'R.DURAN', 'lunes', '09:00', '11:00', 'F305'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS256', 'Tecnologías y Desarrollo Web', 'GL1', 'C.MONTELLANO', 'lunes', '16:00', '18:00', 'B205'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS420', 'Inteligencia Artificial I', 'GT1', 'W.PACHECO', 'martes', '11:00', '13:00', 'D101'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS313', 'Infraestructura Plataformas Tecnológicas', 'GL1', 'M.QUISPE', 'martes', '14:00', '16:00', 'CS05'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS315', 'Sistemas de Gestión Empresarial', 'G1', 'R.QUISPE', 'martes', '18:30', '20:30', 'C101'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS252', 'Redes de Datos II', 'GT2', 'J.ZEBALLOS', 'miercoles', '07:00', '09:00', 'D001'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS420', 'Inteligencia Artificial I', 'GL1', 'W.PACHECO', 'miercoles', '11:00', '13:00', 'B006'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS256', 'Tecnologías y Desarrollo Web', 'GT1', 'C.MONTELLANO', 'miercoles', '16:00', '18:00', 'B206'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS315', 'Sistemas de Gestión Empresarial', 'G1', 'R.QUISPE', 'miercoles', '18:30', '20:30', 'C201'),
+        ('Ingeniería en Ciencias de la Computación', 5, 'SIS324', 'Ingeniería de Software', 'GT1', 'R.DURAN', 'viernes', '09:00', '11:00', 'C204'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS407', 'Interacción Humano Computador', 'G1', 'G.POQUECHOQUE', 'lunes', '09:00', '11:00', 'B206'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS304', 'Base de Datos II', 'GL1', 'R.VILLAFAN', 'martes', '09:00', '11:00', 'F202'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS251', 'Redes de Datos I', 'GT1', 'S.UGRINOVIC', 'martes', '18:30', '20:30', 'E403'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS120', 'Lenguajes Formales', 'G1', 'V.BELIANSKAYA', 'miercoles', '09:00', '11:00', 'D002'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS125', 'Ingeniería de Requerimientos', 'G1', 'G.POQUECHOQUE', 'miercoles', '16:00', '18:00', 'F302'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS110', 'Sistemas Operativos I', 'GT1', 'J.PORCEL', 'miercoles', '18:30', '20:30', 'B006'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS304', 'Base de Datos II', 'GT1', 'R.VILLAFAN', 'jueves', '09:00', '11:00', 'E103'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS407', 'Interacción Humano Computador', 'G1', 'G.POQUECHOQUE', 'jueves', '16:00', '18:00', 'B205'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS251', 'Redes de Datos I', 'GL2', 'S.UGRINOVIC', 'jueves', '18:30', '20:30', 'E403'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS120', 'Lenguajes Formales', 'G1', 'V.BELIANSKAYA', 'viernes', '09:00', '11:00', 'B206'),
+        ('Ingeniería en Ciencias de la Computación', 4, 'SIS125', 'Ingeniería de Requerimientos', 'G1', 'G.POQUECHOQUE', 'viernes', '16:00', '18:00', 'F302'),
     ]
     conn.executemany(
         """
